@@ -2,7 +2,11 @@
 
 #include "CCharBuffer.h"
 #include "CFnMatch.h"
+#include "CLineReader.h"
 #include "CScanFile.h"
+
+#include <optional>
+#include <string_view>
 
 #include <wchar.h> // for size_t, wchar_t
 
@@ -21,23 +25,29 @@ public:
     bool SetFilter(const char* const filter);
 
     // request next matching line; line may contain '\0' and may end with '\n'; return false on error or EOF
-    bool GetNextLine(char* buf, const size_t bufsize, size_t& readBytes);
+    std::optional<std::string_view> GetNextLine();
+
+    // request next matching line; line may contain '\0' and may end with '\n'; return false on error or EOF
+    // NOTE: I would prefer to drop this method because it needs additional memory copy and do not support null characters inside of the line.
+    //       Keeping the method for compatibility with original requirements.
+    bool GetNextLine(char* buf, const size_t bufsize)
+    {
+        if (buf == nullptr)
+        {
+            return false;
+        }
+        const auto line = this->GetNextLine();
+        if (!line || line->size() >= bufsize)
+        {
+            return false;
+        }
+        memcpy(buf, line->data(), line->size());
+        buf[line->size()] = '\0';
+        return true;
+    }
 
 protected:
     CScanFile   _file;
-    CCharBuffer _buffer;
-
-    //bool        _bufferContainsPartialLine = false;
-    //bool        _eof = false;
-    size_t      _bufferBeginOffset = 0; // first byte which is not returned to a caller yet
-    size_t      _bufferEndOffset = 0; // offset after the last byte which is not returned to a caller
-
-    //size_t      _lineBeginOffset = 0;
-    //size_t      _lineNextCharOffset = 0;
-    //size_t      _bufferEndOffset = 0;
-
-    // size_t      _bufferBeginOffset = 0; // first byte which is not returned to a caller yet
-    // size_t      _bufferNoEolOffset = 0; // current position to start searching the EOL?? BOOL???
-    //size_t      _bufferEndOffset = 0; // byte after the last byte which is not returned to a caller
+    CLineReader _lineReader;
     CFnMatch    _lineMatcher;
 };

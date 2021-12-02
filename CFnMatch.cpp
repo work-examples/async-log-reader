@@ -56,7 +56,7 @@ bool CFnMatch::SetFilter(const char* const filter)
 }
 
 
-bool CFnMatch::CheckMatch(const char* const str, const size_t strLength)
+bool CFnMatch::CheckMatch(std::string_view str)
 {
     // TODO: IMPLEMENT!!!!!!!!!!!!!!!
     return true;

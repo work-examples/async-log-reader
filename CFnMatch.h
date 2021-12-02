@@ -19,7 +19,7 @@ public:
         return { this->_filter.ptr, this->_filter.size };
     }
 
-    bool CheckMatch(const char* const str, const size_t strLength);
+    bool CheckMatch(std::string_view str);
 
 protected:
     size_t      _maxLineLength = 0;

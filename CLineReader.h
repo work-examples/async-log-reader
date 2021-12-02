@@ -12,6 +12,8 @@
 class CLineReader
 {
 public:
+    constexpr static size_t g_MaxLogLineLength = 1024; // including ending LF/CRLF;
+
     using ReadDataFunc = bool(char* buffer, const size_t bufferLength, size_t& readBytes);
 
     CLineReader();
@@ -24,6 +26,6 @@ public:
 protected:
     std::function<ReadDataFunc> _funcReadData;
 
-    CCharBuffer      _buffer; // it is filled with at least ReadBlockSize bytes all the time except last chunk of data
+    CCharBuffer      _buffer;
     std::string_view _bufferData; // filled part of the buffer
 };

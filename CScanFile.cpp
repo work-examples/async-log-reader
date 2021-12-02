@@ -17,11 +17,11 @@ bool CScanFile::Open(const wchar_t* const filename)
         return false;
     }
 
-    const DWORD dwDesiredAccess = FILE_READ_DATA;
-    const DWORD dwShareMode = FILE_SHARE_READ;
+    const DWORD dwDesiredAccess = FILE_READ_DATA; // minimal required rights
+    const DWORD dwShareMode = FILE_SHARE_READ; // allow parallel reading. And do not allow appending to log. Algorithm will not work correctly in this case.
     const DWORD dwCreationDisposition = OPEN_EXISTING;
-    const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN;
-    
+    const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN; // read comment below
+
     // FILE_FLAG_SEQUENTIAL_SCAN gives a cache speed optimization for pattern when file is read once from the beginning to the end
     //
     // We can also use async file reading, but it will complicate the code and has its own trade offs related with additional regular calls to kernel mode.

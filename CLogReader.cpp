@@ -1,52 +1,23 @@
 #include "CLogReader.h"
 
-namespace
+
+CLogReader::CLogReader(): _lineMatcher(CLineReader::g_MaxLogLineLength)
 {
-    const size_t MaxKnownNtfsClusterSize = 65536;
-    const size_t MaxLogLineLength = 1024;
-
-    // We need to read lots of lines in a single file read operation to optimize speed:
-    // - less jumps to kernel mode
-    // - less memory copying of the last partially read line
-    const size_t MinimumLinesInReadBlock = 100;
-    const size_t ReadChunkSize = (MaxLogLineLength * MinimumLinesInReadBlock + MaxKnownNtfsClusterSize - 1) / MaxKnownNtfsClusterSize * MaxKnownNtfsClusterSize;
-
-    // check the formula for ReadBlockSize is correct:
-    static_assert(ReadChunkSize >= MaxLogLineLength * MinimumLinesInReadBlock);
-    static_assert(ReadChunkSize < MaxLogLineLength* MinimumLinesInReadBlock + MaxKnownNtfsClusterSize);
-    static_assert(ReadChunkSize% MaxKnownNtfsClusterSize == 0);
-
-    const size_t ReadBufferSize = ReadChunkSize + MaxLogLineLength;
-}
-
-
-CLogReader::CLogReader(): _lineMatcher(MaxLogLineLength)
-{
-    this->_buffer.Allocate(ReadBufferSize);
 }
 
 bool CLogReader::Open(const wchar_t* const filename)
 {
-    if (this->_buffer.ptr == nullptr)
-    {
-        // Could not allocate memory in constructor for read buffer
-        return false;
-    }
-
     this->Close();
 
     const bool succeeded = this->_file.Open(filename);
-
-    this->_bufferBeginOffset = 0;
-    this->_bufferEndOffset = 0;
-
     if (succeeded)
     {
-        size_t readBytes = 0;
-        const bool readOk = this->_file.Read(this->_buffer.ptr, ReadChunkSize, this->_bufferEndOffset);
-        if (!readOk)
+        std::function<CLineReader::ReadDataFunc> funcReadData =
+            std::bind(&CScanFile::Read, this->_file, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+        const bool setupOk = this->_lineReader.Setup(funcReadData);
+        if (!setupOk)
         {
-            // Failed to pre-fill data buffer
             return false;
         }
     }
@@ -65,49 +36,20 @@ bool CLogReader::SetFilter(const char* const filter)
     return succeeded;
 }
 
-bool CLogReader::GetNextLine(char* buf, const size_t bufsize, size_t& readBytes)
+std::optional<std::string_view> CLogReader::GetNextLine()
 {
-    if (buf == nullptr)
+    while (true)
     {
-        return false;
+        const auto line = this->_lineReader.GetNextLine();
+        if (!line)
+        {
+            return line;
+        }
+
+        const bool matched = this->_lineMatcher.CheckMatch(*line);
+        if (matched)
+        {
+            return line;
+        }
     }
-
-    {
-        if (this->_bufferEndOffset == 0)
-        {
-            // End of file was encountered previously
-            return false;
-        }
-
-        const char* const dataBegin = this->_buffer.ptr + this->_bufferBeginOffset;
-        const size_t dataLength = this->_bufferEndOffset - this->_bufferBeginOffset;
-
-        // Find EOL:
-        const char chEOL = '\n';
-        const char* const eol = static_cast<const char*>(memchr(dataBegin, chEOL, dataLength));
-
-        // TODO: what to do if EOL was not found during MaxLineLen or it was found but later????????????????????????
-
-        if (eol == nullptr && this->_bufferEndOffset >= ReadChunkSize)
-        {
-            // TODO: move memory to begin of buffer + readfile + try again to match starting from dataLength offset
-        }
-
-        const size_t lineLength = eol == nullptr ? dataLength : eol + 1 - dataBegin;
-
-        // Copy found line to provided buffer:
-        if (bufsize < lineLength)
-        {
-            // User buffer size is too small
-            return false;
-        }
-
-        // TODO: check if match and loop???????
-
-        memcpy(buf, this->_buffer.ptr + this->_bufferBeginOffset, lineLength);
-        readBytes = lineLength;
-        this->_bufferBeginOffset += lineLength;
-    }
-
-    return true;
 }

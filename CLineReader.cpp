@@ -6,7 +6,7 @@
 namespace
 {
     const size_t MaxKnownNtfsClusterSize = 65536;
-    const size_t MaxLogLineLength = 1024; // including ending LF/CRLF
+    const size_t MaxLogLineLength = CLineReader::g_MaxLogLineLength; // including ending LF/CRLF;
 
     // We need to read lots of lines in a single file read operation to optimize speed:
     // - less jumps to kernel mode
@@ -19,7 +19,7 @@ namespace
     static_assert(ReadChunkSize < MaxLogLineLength* MinimumLinesInReadBlock + MaxKnownNtfsClusterSize);
     static_assert(ReadChunkSize % MaxKnownNtfsClusterSize == 0);
 
-    const size_t ReadBufferSize = ReadChunkSize + MaxLogLineLength - 1;
+    const size_t ReadBufferSize = ReadChunkSize + MaxLogLineLength;
 }
 
 
@@ -37,29 +37,12 @@ bool CLineReader::Setup(std::function<CLineReader::ReadDataFunc> readData)
     }
 
     this->_funcReadData = std::move(readData);
-
-    // Prefill buffer to satisfy its invariant
-    size_t readBytes = 0;
-    const bool readOk = this->_funcReadData(this->_buffer.ptr, ReadChunkSize, readBytes);
-    if (!readOk)
-    {
-        // Failed to prefill data buffer
-        return false;
-    }
-
-    this->_bufferData = { this->_buffer.ptr, readBytes };
+    this->_bufferData = { this->_buffer.ptr, 0 };
     return true;
 }
 
 std::optional<std::string_view> CLineReader::GetNextLine()
 {
-    if (this->_bufferData.empty())
-    {
-        BLIAD!!!!
-        // End of file was found previously
-        return {};
-    }
-
     // Find EOL:
     const char chEOL = '\n';
     size_t eolOffset = this->_bufferData.find(chEOL);
@@ -74,29 +57,8 @@ std::optional<std::string_view> CLineReader::GetNextLine()
             return {};
         }
 
-        // During the last chunk of data _bufferData will be smaller than ReadChunkSize:
-        // /====================\
-        // |      _buffer       |
-        // | ReadChunkSize |    |
-        // |  |_bufferData|     |
-        // \====================/
-        const bool lastChunk = this->_bufferData.data() + this->_bufferData.size() < this->_buffer.ptr + ReadChunkSize;
-        if (lastChunk)
-        {
-            // Last line
-            std::string_view result;
-            this->_bufferData.swap(result);
-            return result;
-        }
-
-        if (this->_bufferData.size() == MaxLogLineLength)
-        {
-            // Incomplete line cannot be moved and concatenated later because of its critical length
-            return {};
-        }
-
         const size_t prefixLength = this->_bufferData.size();
-        assert(prefixLength < MaxLogLineLength);
+        assert(prefixLength <= MaxLogLineLength && "the rest of buffer is not too big for moving to beginning");
 
         memmove(this->_buffer.ptr, this->_bufferData.data(), prefixLength);
 
@@ -108,7 +70,7 @@ std::optional<std::string_view> CLineReader::GetNextLine()
         }
 
         size_t readBytes = 0;
-        assert(prefixLength + ReadChunkSize <= ReadBufferSize);
+        assert(prefixLength + ReadChunkSize <= ReadBufferSize && "buffer is big enough to receive all data");
         const bool readOk = this->_funcReadData(this->_buffer.ptr + prefixLength, ReadChunkSize, readBytes);
         if (!readOk)
         {
@@ -116,9 +78,18 @@ std::optional<std::string_view> CLineReader::GetNextLine()
             return {};
         }
 
-        this->_bufferData = { this->_buffer.ptr, prefixLength + ReadChunkSize };
+        this->_bufferData = { this->_buffer.ptr, prefixLength + readBytes };
 
-        // Search EOL again:
+        if (this->_bufferData.empty())
+        {
+            assert(readBytes == 0);
+            // Data source already pointed there is not data any more
+            // The very last line without LF is not counted
+            return {};
+        }
+
+        // Search EOL again after reading additional data:
+        // I expect we read either ReadChunkSize bytes or we read the data chunk in file.
         eolOffset = this->_bufferData.find(chEOL, prefixLength);
         if (eolOffset == this->_bufferData.npos)
         {
@@ -129,8 +100,9 @@ std::optional<std::string_view> CLineReader::GetNextLine()
             }
 
             // Found last line after reading missing data
-            std::string_view result;
-            this->_bufferData.swap(result);
+            const std::string_view result = this->_bufferData;
+            this->_bufferData = { this->_buffer.ptr, 0 };
+            assert(!result.empty() && "last line without LF should be non empty");
             return result;
         }
     }
@@ -146,5 +118,6 @@ std::optional<std::string_view> CLineReader::GetNextLine()
     const char* const lineStart = this->_bufferData.data();
     this->_bufferData.remove_prefix(foundLineLength);
 
+    assert(foundLineLength > 0 && "result should contain LF char");
     return std::string_view(lineStart, foundLineLength);
 }
