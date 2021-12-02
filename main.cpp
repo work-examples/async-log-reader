@@ -4,9 +4,24 @@
 
 #include "CLogReader.h"
 
+#include <functional>
+
+class AAA
+{
+public:
+    void f123()
+    {
+
+    }
+};
 
 int wmain(const int argc, const wchar_t* const argv[])
 {
+    AAA a;
+    using dd = void();
+    std::function<dd> ff = std::bind(&AAA::f123, a);
+    std::function<dd> ff2 = ff;
+
     if (argc <= 2)
     {
         wprintf(L"Error! Not enough command line arguments!\n");

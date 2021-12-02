@@ -1,10 +1,10 @@
 #pragma once
 
-#include <wchar.h> // for size_t, wchar_t
-
 #include "CCharBuffer.h"
 #include "CFnMatch.h"
 #include "CScanFile.h"
+
+#include <wchar.h> // for size_t, wchar_t
 
 
 class CLogReader final

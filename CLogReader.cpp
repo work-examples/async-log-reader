@@ -9,14 +9,14 @@ namespace
     // - less jumps to kernel mode
     // - less memory copying of the last partially read line
     const size_t MinimumLinesInReadBlock = 100;
-    const size_t ReadBlockSize = (MaxLogLineLength * MinimumLinesInReadBlock + MaxKnownNtfsClusterSize - 1) / MaxKnownNtfsClusterSize * MaxKnownNtfsClusterSize;
+    const size_t ReadChunkSize = (MaxLogLineLength * MinimumLinesInReadBlock + MaxKnownNtfsClusterSize - 1) / MaxKnownNtfsClusterSize * MaxKnownNtfsClusterSize;
 
     // check the formula for ReadBlockSize is correct:
-    static_assert(ReadBlockSize >= MaxLogLineLength * MinimumLinesInReadBlock);
-    static_assert(ReadBlockSize < MaxLogLineLength* MinimumLinesInReadBlock + MaxKnownNtfsClusterSize);
-    static_assert(ReadBlockSize% MaxKnownNtfsClusterSize == 0);
+    static_assert(ReadChunkSize >= MaxLogLineLength * MinimumLinesInReadBlock);
+    static_assert(ReadChunkSize < MaxLogLineLength* MinimumLinesInReadBlock + MaxKnownNtfsClusterSize);
+    static_assert(ReadChunkSize% MaxKnownNtfsClusterSize == 0);
 
-    const size_t ReadBufferSize = ReadBlockSize + MaxLogLineLength;
+    const size_t ReadBufferSize = ReadChunkSize + MaxLogLineLength;
 }
 
 
@@ -43,7 +43,7 @@ bool CLogReader::Open(const wchar_t* const filename)
     if (succeeded)
     {
         size_t readBytes = 0;
-        const bool readOk = this->_file.Read(this->_buffer.ptr, ReadBlockSize, this->_bufferEndOffset);
+        const bool readOk = this->_file.Read(this->_buffer.ptr, ReadChunkSize, this->_bufferEndOffset);
         if (!readOk)
         {
             // Failed to pre-fill data buffer
@@ -88,7 +88,7 @@ bool CLogReader::GetNextLine(char* buf, const size_t bufsize, size_t& readBytes)
 
         // TODO: what to do if EOL was not found during MaxLineLen or it was found but later????????????????????????
 
-        if (eol == nullptr && this->_bufferEndOffset >= ReadBlockSize)
+        if (eol == nullptr && this->_bufferEndOffset >= ReadChunkSize)
         {
             // TODO: move memory to begin of buffer + readfile + try again to match starting from dataLength offset
         }

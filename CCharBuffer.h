@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <wchar.h> // for size_t
 
 
 class CCharBuffer

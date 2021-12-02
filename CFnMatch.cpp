@@ -3,7 +3,7 @@
 #include <assert.h>
 
 
-CFnMatch::CFnMatch(const size_t maxLineLength): _maxLineLength(maxLineLength)
+CFnMatch::CFnMatch(const size_t maxLineLength) : _maxLineLength(maxLineLength)
 {
 }
 
@@ -26,7 +26,7 @@ bool CFnMatch::SetFilter(const char* const filter)
             // Glue consecutive asterisks together by skipping all asterisks except the last one in sequence
             continue;
         }
-        effectiveLength += 1;
+        ++effectiveLength;
     }
 
     const bool allocatedOk = this->_filter.Allocate(effectiveLength);
@@ -44,7 +44,7 @@ bool CFnMatch::SetFilter(const char* const filter)
             continue;
         }
         this->_filter.ptr[destOffset] = p[0];
-        destOffset += 1;
+        ++destOffset;
     }
     assert(destOffset == effectiveLength);
 

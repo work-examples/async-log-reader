@@ -1,8 +1,8 @@
 #include "CScanFile.h"
 
-#include <windows.h>
-
 #include <algorithm>
+
+#include <windows.h>
 
 
 CScanFile::~CScanFile()

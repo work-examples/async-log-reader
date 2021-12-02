@@ -31,3 +31,8 @@ get rid of THIS->
 add tests!
 
 
+CLineReader - check null functor for read Data!!!!!!!
+
+
+try memchr instead for speed!
+

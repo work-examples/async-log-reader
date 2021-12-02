@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="CCharBuffer.h" />
     <ClInclude Include="CFnMatch.h" />
+    <ClInclude Include="CLineReader.h" />
     <ClInclude Include="CLogReader.h" />
     <ClInclude Include="CScanFile.h" />
     <ClInclude Include="gtest\include\gtest\gtest-death-test.h" />
@@ -38,6 +39,7 @@
   <ItemGroup>
     <ClCompile Include="CCharBuffer.cpp" />
     <ClCompile Include="CFnMatch.cpp" />
+    <ClCompile Include="CLineReader.cpp" />
     <ClCompile Include="CLogReader.cpp" />
     <ClCompile Include="CScanFile.cpp" />
     <ClCompile Include="gtest\src\gtest-all.cc" />
