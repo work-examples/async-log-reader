@@ -20,16 +20,16 @@ namespace
 }
 
 
-CLogReader::CLogReader()
+CLogReader::CLogReader(): _lineMatcher(MaxLogLineLength)
 {
-    this->_readBuffer.Allocate(ReadBufferSize);
+    this->_buffer.Allocate(ReadBufferSize);
 }
 
-bool CLogReader::Open(const wchar_t* filename)
+bool CLogReader::Open(const wchar_t* const filename)
 {
-    if (this->_readBuffer.ptr == nullptr)
+    if (this->_buffer.ptr == nullptr)
     {
-        // Could not allocate memory in constructor
+        // Could not allocate memory in constructor for read buffer
         return false;
     }
 
@@ -43,13 +43,13 @@ void CLogReader::Close()
     this->_file.Close();
 }
 
-bool CLogReader::SetFilter(const char* filter)
+bool CLogReader::SetFilter(const char* const filter)
 {
     const bool succeeded = this->_lineMatcher.SetFilter(filter);
     return succeeded;
 }
 
-bool CLogReader::GetNextLine(char* buf, const size_t bufsize)
+bool CLogReader::GetNextLine(char* buf, const size_t bufsize, size_t& readBytes)
 {
     if (buf == nullptr)
     {

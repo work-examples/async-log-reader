@@ -8,7 +8,7 @@ class CScanFile
 public:
     ~CScanFile();
 
-    bool Open(const wchar_t* filename);
+    bool Open(const wchar_t* const filename);
     void Close();
     bool Read(char* buffer, const size_t bufferLength, size_t& readBytes);
 

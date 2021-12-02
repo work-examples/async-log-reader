@@ -12,15 +12,21 @@ class CLogReader final
 public:
     CLogReader();
 
-    bool Open(const wchar_t* filename);  // open file; return false on error
-    void Close();                        // close file
+    // open file; return false on error
+    bool Open(const wchar_t* const filename);
+    // close file
+    void Close();
 
-    bool SetFilter(const char* filter);  // set line filter; return false on error
-    bool GetNextLine(char* buf, const size_t bufsize); // request next matching line; return false on error
+    // set line filter; return false on error
+    bool SetFilter(const char* const filter);
+
+    // request next matching line; line may contain '\0' and may end with '\n'; return false on error
+    bool GetNextLine(char* buf, const size_t bufsize, size_t& readBytes);
 
 protected:
     CScanFile   _file;
-    CCharBuffer _readBuffer;
-    size_t      _readBufferUsedBytes = 0;
+    CCharBuffer _buffer;
+    size_t      _bufferBeginReadOffset = 0;
+    size_t      _bufferEndReadOffset = 0;
     CFnMatch    _lineMatcher;
 };

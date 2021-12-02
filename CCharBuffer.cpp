@@ -8,15 +8,22 @@ CCharBuffer::~CCharBuffer()
     this->Free();
 }
 
-void CCharBuffer::Allocate(const size_t bufferLength)
+bool CCharBuffer::Allocate(const size_t bufferLength)
 {
     this->Free();
 
-    if (bufferLength)
+    if (bufferLength == 0)
+    {
+        this->ptr = static_cast<char*>(malloc(1));
+        this->length = 0;
+    }
+    else
     {
         this->ptr = static_cast<char*>(malloc(bufferLength));
-        this->length = bufferLength;
+        this->length = this->ptr != nullptr ? bufferLength : 0;
     }
+
+    return this->ptr != nullptr;
 }
 
 void CCharBuffer::Free()

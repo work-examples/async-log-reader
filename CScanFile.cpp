@@ -10,7 +10,7 @@ CScanFile::~CScanFile()
     this->Close();
 }
 
-bool CScanFile::Open(const wchar_t* filename)
+bool CScanFile::Open(const wchar_t* const filename)
 {
     if (filename == nullptr || this->_file != nullptr)
     {
@@ -20,9 +20,15 @@ bool CScanFile::Open(const wchar_t* filename)
     const DWORD dwDesiredAccess = FILE_READ_DATA;
     const DWORD dwShareMode = FILE_SHARE_READ;
     const DWORD dwCreationDisposition = OPEN_EXISTING;
-    const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN;  // cache speed optimization for pattern when file is read once from the beginning to the end
+    const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN;
+    
+    // FILE_FLAG_SEQUENTIAL_SCAN gives a cache speed optimization for pattern when file is read once from the beginning to the end
+    //
+    // We can also use async file reading, but it will complicate the code and has its own trade offs related with additional regular calls to kernel mode.
+    // I'm sure FILE_FLAG_SEQUENTIAL_SCAN will force Windows to act with similar performance to what we could get using Async IO.
+    // However I did no performance checks for this guess.
 
-    this->_file = CreateFileW(filename, dwDesiredAccess, dwShareMode, nullptr, 0, dwFlagsAndAttributes, nullptr);
+    this->_file = CreateFileW(filename, dwDesiredAccess, dwShareMode, nullptr, dwCreationDisposition, dwFlagsAndAttributes, nullptr);
 
     if (this->_file == INVALID_HANDLE_VALUE)
     {

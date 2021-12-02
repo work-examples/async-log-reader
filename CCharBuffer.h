@@ -8,7 +8,7 @@ class CCharBuffer
 public:
     ~CCharBuffer();
 
-    void Allocate(const size_t bufferLength);
+    bool Allocate(const size_t bufferLength);
     void Free();
 
 public:
