@@ -13,5 +13,5 @@ public:
 
 public:
     char* ptr = nullptr;
-    size_t length = 0;
+    size_t size = 0;
 };

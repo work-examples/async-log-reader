@@ -34,7 +34,23 @@ bool CLogReader::Open(const wchar_t* const filename)
     }
 
     CLogReader::Close();
+
     const bool succeeded = this->_file.Open(filename);
+
+    this->_bufferBeginOffset = 0;
+    this->_bufferEndOffset = 0;
+
+    if (succeeded)
+    {
+        size_t readBytes = 0;
+        const bool readOk = this->_file.Read(this->_buffer.ptr, ReadBlockSize, this->_bufferEndOffset);
+        if (!readOk)
+        {
+            // Failed to pre-fill data buffer
+            return false;
+        }
+    }
+
     return succeeded;
 }
 
@@ -56,6 +72,42 @@ bool CLogReader::GetNextLine(char* buf, const size_t bufsize, size_t& readBytes)
         return false;
     }
 
-    // TODO: implement!!!!!!!!!
-    return false;
+    {
+        if (this->_bufferEndOffset == 0)
+        {
+            // End of file was encountered previously
+            return false;
+        }
+
+        const char* const dataBegin = this->_buffer.ptr + this->_bufferBeginOffset;
+        const size_t dataLength = this->_bufferEndOffset - this->_bufferBeginOffset;
+
+        // Find EOL:
+        const char chEOL = '\n';
+        const char* const eol = static_cast<const char*>(memchr(dataBegin, chEOL, dataLength));
+
+        // TODO: what to do if EOL was not found during MaxLineLen or it was found but later????????????????????????
+
+        if (eol == nullptr && this->_bufferEndOffset >= ReadBlockSize)
+        {
+            // TODO: move memory to begin of buffer + readfile + try again to match starting from dataLength offset
+        }
+
+        const size_t lineLength = eol == nullptr ? dataLength : eol + 1 - dataBegin;
+
+        // Copy found line to provided buffer:
+        if (bufsize < lineLength)
+        {
+            // User buffer size is too small
+            return false;
+        }
+
+        // TODO: check if match and loop???????
+
+        memcpy(buf, this->_buffer.ptr + this->_bufferBeginOffset, lineLength);
+        readBytes = lineLength;
+        this->_bufferBeginOffset += lineLength;
+    }
+
+    return true;
 }

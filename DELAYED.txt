@@ -18,3 +18,16 @@ zero char inside of log!!
 +1 for line length for \n ????? or +2 for CRLF?????
 
 
+last empty line - is it a line????
+
+
+
+TODO: parse line by line separate from matchin!
+
+
+get rid of THIS->
+
+
+add tests!
+
+

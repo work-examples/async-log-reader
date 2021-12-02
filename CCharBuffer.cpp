@@ -5,33 +5,33 @@
 
 CCharBuffer::~CCharBuffer()
 {
-    this->Free();
+    Free();
 }
 
 bool CCharBuffer::Allocate(const size_t bufferLength)
 {
-    this->Free();
+    Free();
 
     if (bufferLength == 0)
     {
-        this->ptr = static_cast<char*>(malloc(1));
-        this->length = 0;
+        ptr = static_cast<char*>(malloc(1));
+        size = 0;
     }
     else
     {
-        this->ptr = static_cast<char*>(malloc(bufferLength));
-        this->length = this->ptr != nullptr ? bufferLength : 0;
+        ptr = static_cast<char*>(malloc(bufferLength));
+        size = ptr != nullptr ? bufferLength : 0;
     }
 
-    return this->ptr != nullptr;
+    return ptr != nullptr;
 }
 
 void CCharBuffer::Free()
 {
-    if (this->ptr)
+    if (ptr)
     {
-        free(this->ptr);
-        this->ptr = nullptr;
-        this->length = 0;
+        free(ptr);
+        ptr = nullptr;
+        size = 0;
     }
 }
