@@ -33,7 +33,7 @@ bool CLogReader::Open(const wchar_t* const filename)
         return false;
     }
 
-    CLogReader::Close();
+    this->Close();
 
     const bool succeeded = this->_file.Open(filename);
 
