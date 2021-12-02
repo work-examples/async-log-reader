@@ -1,0 +1,16 @@
+
+
+
+TODO:
+
+
+
+try static CRT
+
+try disable SDL checks
+
+
+zero char inside of log!!
+
+
+
