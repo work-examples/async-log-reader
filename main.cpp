@@ -37,7 +37,6 @@ int wmain(const int argc, const wchar_t* const argv[])
         return 3;
     }
 
-    int i = 0;
     while (true)
     {
         const auto line = reader.GetNextLine();
@@ -46,7 +45,6 @@ int wmain(const int argc, const wchar_t* const argv[])
             break;
         }
 
-        printf("%d: ", ++i);
         fwrite(line->data(), line->size(), 1, stdout);
 
         // Add optionally missing EOL after the last line of the file:
