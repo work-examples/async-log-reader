@@ -1,3 +1,5 @@
+#include <fcntl.h>
+#include <io.h>
 #include <stdio.h>
 
 #include <atlcomcli.h>
@@ -9,12 +11,12 @@ int wmain(const int argc, const wchar_t* const argv[])
 {
     if (argc <= 2)
     {
-        wprintf(L"Error! Not enough command line arguments!\n");
-        wprintf(L"Usage:\n");
-        wprintf(L"LogReader.exe <filename> <pattern>\n");
-        wprintf(L"Pattern is similar to fnmatch and supports symbols '*' and '?'.\n");
-        wprintf(L"Example:\n");
-        wprintf(L"LogReader.exe 20190102.log \"*bbb*\"\n");
+        fwprintf(stderr, L"Error! Not enough command line arguments!\n");
+        fwprintf(stderr, L"Usage:\n");
+        fwprintf(stderr, L"LogReader.exe <filename> <pattern>\n");
+        fwprintf(stderr, L"Pattern is similar to fnmatch and supports symbols '*' and '?'.\n");
+        fwprintf(stderr, L"Example:\n");
+        fwprintf(stderr, L"LogReader.exe 20190102.log \"*bbb*\"\n");
         return 1;
     }
 
@@ -26,16 +28,20 @@ int wmain(const int argc, const wchar_t* const argv[])
     const bool openedOk = reader.Open(fileName);
     if (!openedOk)
     {
-        wprintf(L"Error! Failed to open file: \"%ws\"\n", fileName);
+        fwprintf(stderr, L"Error! Failed to open file: \"%ws\"\n", fileName);
         return 2;
     }
 
     const bool filterSetOk = reader.SetFilter(CW2A(lineFilter));
     if (!filterSetOk)
     {
-        wprintf(L"Error! Failed to set filter: \"%ws\"\n", lineFilter);
+        fwprintf(stderr, L"Error! Failed to set filter: \"%ws\"\n", lineFilter);
         return 3;
     }
+
+    // prevent printf from changing LF to CRLF
+    // so we act the same way as grep does
+    _setmode(_fileno(stdout), O_BINARY);
 
     while (true)
     {
