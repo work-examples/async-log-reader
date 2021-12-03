@@ -164,3 +164,17 @@ TEST(CFnMatch, MatchAsterisk3)
     EXPECT_TRUE(match.CheckMatch("abcd"));
     EXPECT_TRUE(match.CheckMatch("-=<ab><cd>=-"));
 }
+
+TEST(CFnMatch, MatchSpeedTest1)
+{
+    CFnMatch match(100);
+    match.SetFilter("*******************");
+    EXPECT_TRUE(match.CheckMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+}
+
+TEST(CFnMatch, MatchSpeedTest2)
+{
+    CFnMatch match(100);
+    match.SetFilter("*a*a*a*a*a*a*a*a*a*a*a*a*a*a*");
+    EXPECT_TRUE(match.CheckMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+}
