@@ -95,16 +95,19 @@ bool CFnMatch::CalculateMatch(const size_t filterPos, const size_t textPos)
     }
     else
     {
-        const bool currentMatch = textPos < this->_text.size() && (
-            this->_filter.ptr[filterPos] == this->_text[textPos] ||
-            this->_filter.ptr[filterPos] == '?'
-            );
-        if (filterPos + 1 < this->_filter.size && this->_filter.ptr[filterPos + 1] == '*')
+        if (this->_filter.ptr[filterPos] == '*')
         {
-            result = this->CalculateMatch(filterPos + 2, textPos) || (currentMatch && this->CalculateMatch(filterPos, textPos + 1));
+            result = this->CalculateMatch(filterPos + 1, textPos) || (
+                textPos < this->_text.size() && 
+                this->CalculateMatch(filterPos, textPos + 1)
+                );
         }
         else
         {
+            const bool currentMatch = textPos < this->_text.size() && (
+                this->_filter.ptr[filterPos] == this->_text[textPos] ||
+                this->_filter.ptr[filterPos] == '?'
+                );
             result = currentMatch && this->CalculateMatch(filterPos + 1, textPos + 1);
         }
     }

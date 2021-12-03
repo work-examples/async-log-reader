@@ -109,6 +109,32 @@ TEST(CFnMatch, MatchAsterisk1)
     EXPECT_TRUE(match.CheckMatch("***"));
 }
 
+TEST(CFnMatch, MatchAsterisk1Prefix)
+{
+    CFnMatch match(20);
+    match.SetFilter("a*");
+    EXPECT_FALSE(match.CheckMatch(""));
+    EXPECT_TRUE(match.CheckMatch("a"));
+    EXPECT_TRUE(match.CheckMatch("abc"));
+    EXPECT_FALSE(match.CheckMatch("Xa"));
+    EXPECT_FALSE(match.CheckMatch("Xabc"));
+    EXPECT_FALSE(match.CheckMatch("**"));
+    EXPECT_FALSE(match.CheckMatch("?*"));
+}
+
+TEST(CFnMatch, MatchAsterisk1Postfix)
+{
+    CFnMatch match(20);
+    match.SetFilter("*a");
+    EXPECT_FALSE(match.CheckMatch(""));
+    EXPECT_TRUE(match.CheckMatch("a"));
+    EXPECT_TRUE(match.CheckMatch("cba"));
+    EXPECT_FALSE(match.CheckMatch("aX"));
+    EXPECT_FALSE(match.CheckMatch("cbaX"));
+    EXPECT_FALSE(match.CheckMatch("**"));
+    EXPECT_FALSE(match.CheckMatch("*?"));
+}
+
 TEST(CFnMatch, MatchAsterisk1Inside)
 {
     CFnMatch match(20);
