@@ -5,176 +5,155 @@
 
 TEST(CFnMatch, SetFilter_Empty)
 {
-    CFnMatch match(10);
-    match.SetFilter("");
-    EXPECT_EQ(match.GetFilter(), "");
+    CFnMatch match;
+    match.SetPattern("");
+    EXPECT_EQ(match.GetPattern(), "");
 }
 
 TEST(CFnMatch, SetFilter_Text)
 {
-    CFnMatch match(10);
-    match.SetFilter("abc");
-    EXPECT_EQ(match.GetFilter(), "abc");
-}
-
-TEST(CFnMatch, SetFilter_QuestionMark1)
-{
-    CFnMatch match(10);
-    match.SetFilter("?");
-    EXPECT_EQ(match.GetFilter(), "?");
+    CFnMatch match;
+    match.SetPattern("abc");
+    EXPECT_EQ(match.GetPattern(), "abc");
 }
 
 TEST(CFnMatch, SetFilter_QuestionMarks)
 {
-    CFnMatch match(10);
-    match.SetFilter("??a??b??c??");
-    EXPECT_EQ(match.GetFilter(), "??a??b??c??");
-}
-
-TEST(CFnMatch, SetFilter_Asterisk1)
-{
-    CFnMatch match(10);
-    match.SetFilter("*");
-    EXPECT_EQ(match.GetFilter(), "*");
-}
-
-TEST(CFnMatch, SetFilter_Asterisk3)
-{
-    CFnMatch match(10);
-    match.SetFilter("***");
-    EXPECT_EQ(match.GetFilter(), "*");
+    CFnMatch match;
+    match.SetPattern("??a??b??c??");
+    EXPECT_EQ(match.GetPattern(), "??a??b??c??");
 }
 
 TEST(CFnMatch, SetFilter_Asterisks)
 {
-    CFnMatch match(10);
-    match.SetFilter("**a***b**");
-    EXPECT_EQ(match.GetFilter(), "*a*b*");
+    CFnMatch match;
+    match.SetPattern("***abc***def***");
+    EXPECT_EQ(match.GetPattern(), "***abc***def***");
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 TEST(CFnMatch, MatchEmpty)
 {
-    CFnMatch match(20);
-    match.SetFilter("");
-    EXPECT_TRUE(match.CheckMatch(""));
-    EXPECT_FALSE(match.CheckMatch("a"));
+    CFnMatch match;
+    match.SetPattern("");
+    EXPECT_TRUE(match.FullMatch(""));
+    EXPECT_FALSE(match.FullMatch("a"));
 }
 
 TEST(CFnMatch, MatchText)
 {
-    CFnMatch match(20);
-    match.SetFilter("abc");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_FALSE(match.CheckMatch("a"));
-    EXPECT_FALSE(match.CheckMatch("cba"));
-    EXPECT_TRUE(match.CheckMatch("abc"));
-    EXPECT_FALSE(match.CheckMatch("pre abc post"));
+    CFnMatch match;
+    match.SetPattern("abc");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_FALSE(match.FullMatch("a"));
+    EXPECT_FALSE(match.FullMatch("cba"));
+    EXPECT_TRUE(match.FullMatch("abc"));
+    EXPECT_FALSE(match.FullMatch("pre abc post"));
 }
 
 TEST(CFnMatch, MatchQuestionMark1)
 {
-    CFnMatch match(20);
-    match.SetFilter("?");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_TRUE(match.CheckMatch("a"));
-    EXPECT_TRUE(match.CheckMatch("?"));
-    EXPECT_TRUE(match.CheckMatch("*"));
-    EXPECT_FALSE(match.CheckMatch("abc"));
+    CFnMatch match;
+    match.SetPattern("?");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_TRUE(match.FullMatch("a"));
+    EXPECT_TRUE(match.FullMatch("?"));
+    EXPECT_TRUE(match.FullMatch("*"));
+    EXPECT_FALSE(match.FullMatch("abc"));
 }
 
 TEST(CFnMatch, MatchQuestionMark2)
 {
-    CFnMatch match(20);
-    match.SetFilter("ab??cd");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_FALSE(match.CheckMatch("abcd"));
-    EXPECT_FALSE(match.CheckMatch("abXcd"));
-    EXPECT_TRUE(match.CheckMatch("ab??cd"));
-    EXPECT_TRUE(match.CheckMatch("abXYcd"));
-    EXPECT_FALSE(match.CheckMatch("abXYZcd"));
+    CFnMatch match;
+    match.SetPattern("ab??cd");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_FALSE(match.FullMatch("abcd"));
+    EXPECT_FALSE(match.FullMatch("abXcd"));
+    EXPECT_TRUE(match.FullMatch("ab??cd"));
+    EXPECT_TRUE(match.FullMatch("abXYcd"));
+    EXPECT_FALSE(match.FullMatch("abXYZcd"));
 }
 
 TEST(CFnMatch, MatchAsterisk1)
 {
-    CFnMatch match(20);
-    match.SetFilter("*");
-    EXPECT_TRUE(match.CheckMatch(""));
-    EXPECT_TRUE(match.CheckMatch("a"));
-    EXPECT_TRUE(match.CheckMatch("abc"));
-    EXPECT_TRUE(match.CheckMatch("?"));
-    EXPECT_TRUE(match.CheckMatch("???"));
-    EXPECT_TRUE(match.CheckMatch("*"));
-    EXPECT_TRUE(match.CheckMatch("***"));
+    CFnMatch match;
+    match.SetPattern("*");
+    EXPECT_TRUE(match.FullMatch(""));
+    EXPECT_TRUE(match.FullMatch("a"));
+    EXPECT_TRUE(match.FullMatch("abc"));
+    EXPECT_TRUE(match.FullMatch("?"));
+    EXPECT_TRUE(match.FullMatch("???"));
+    EXPECT_TRUE(match.FullMatch("*"));
+    EXPECT_TRUE(match.FullMatch("***"));
 }
 
 TEST(CFnMatch, MatchAsterisk1Prefix)
 {
-    CFnMatch match(20);
-    match.SetFilter("a*");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_TRUE(match.CheckMatch("a"));
-    EXPECT_TRUE(match.CheckMatch("abc"));
-    EXPECT_FALSE(match.CheckMatch("Xa"));
-    EXPECT_FALSE(match.CheckMatch("Xabc"));
-    EXPECT_FALSE(match.CheckMatch("**"));
-    EXPECT_FALSE(match.CheckMatch("?*"));
+    CFnMatch match;
+    match.SetPattern("a*");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_TRUE(match.FullMatch("a"));
+    EXPECT_TRUE(match.FullMatch("abc"));
+    EXPECT_FALSE(match.FullMatch("Xa"));
+    EXPECT_FALSE(match.FullMatch("Xabc"));
+    EXPECT_FALSE(match.FullMatch("**"));
+    EXPECT_FALSE(match.FullMatch("?*"));
 }
 
 TEST(CFnMatch, MatchAsterisk1Postfix)
 {
-    CFnMatch match(20);
-    match.SetFilter("*a");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_TRUE(match.CheckMatch("a"));
-    EXPECT_TRUE(match.CheckMatch("cba"));
-    EXPECT_FALSE(match.CheckMatch("aX"));
-    EXPECT_FALSE(match.CheckMatch("cbaX"));
-    EXPECT_FALSE(match.CheckMatch("**"));
-    EXPECT_FALSE(match.CheckMatch("*?"));
+    CFnMatch match;
+    match.SetPattern("*a");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_TRUE(match.FullMatch("a"));
+    EXPECT_TRUE(match.FullMatch("cba"));
+    EXPECT_FALSE(match.FullMatch("aX"));
+    EXPECT_FALSE(match.FullMatch("cbaX"));
+    EXPECT_FALSE(match.FullMatch("**"));
+    EXPECT_FALSE(match.FullMatch("*?"));
 }
 
 TEST(CFnMatch, MatchAsterisk1Inside)
 {
-    CFnMatch match(20);
-    match.SetFilter("ab*cd");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_FALSE(match.CheckMatch("<abcd>"));
-    EXPECT_TRUE(match.CheckMatch("abcd"));
-    EXPECT_TRUE(match.CheckMatch("abXYXcd"));
+    CFnMatch match;
+    match.SetPattern("ab*cd");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_FALSE(match.FullMatch("<abcd>"));
+    EXPECT_TRUE(match.FullMatch("abcd"));
+    EXPECT_TRUE(match.FullMatch("abXYXcd"));
 }
 
-TEST(CFnMatch, MatchAsterisks2Outside)
+TEST(CFnMatch, MatchAsterisk2Outside)
 {
-    CFnMatch match(20);
-    match.SetFilter("*abc*");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_TRUE(match.CheckMatch("abc"));
-    EXPECT_TRUE(match.CheckMatch("<abcd>"));
-    EXPECT_FALSE(match.CheckMatch("a-b-c"));
+    CFnMatch match;
+    match.SetPattern("*abc*");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_TRUE(match.FullMatch("abc"));
+    EXPECT_TRUE(match.FullMatch("<abcd>"));
+    EXPECT_FALSE(match.FullMatch("a-b-c"));
 }
 
 TEST(CFnMatch, MatchAsterisk3)
 {
-    CFnMatch match(20);
-    match.SetFilter("*ab*cd*");
-    EXPECT_FALSE(match.CheckMatch(""));
-    EXPECT_FALSE(match.CheckMatch("a b c d"));
-    EXPECT_TRUE(match.CheckMatch("abcd"));
-    EXPECT_TRUE(match.CheckMatch("-=<ab><cd>=-"));
+    CFnMatch match;
+    match.SetPattern("*ab*cd*");
+    EXPECT_FALSE(match.FullMatch(""));
+    EXPECT_FALSE(match.FullMatch("a b c d"));
+    EXPECT_TRUE(match.FullMatch("abcd"));
+    EXPECT_TRUE(match.FullMatch("-=<ab><cd>=-"));
 }
 
 TEST(CFnMatch, MatchSpeedTest1)
 {
-    CFnMatch match(100);
-    match.SetFilter("*******************");
-    EXPECT_TRUE(match.CheckMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    CFnMatch match;
+    match.SetPattern("*******************");
+    EXPECT_TRUE(match.FullMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 }
 
 TEST(CFnMatch, MatchSpeedTest2)
 {
-    CFnMatch match(100);
-    match.SetFilter("*a*a*a*a*a*a*a*a*a*a*a*a*a*a*");
-    EXPECT_TRUE(match.CheckMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    CFnMatch match;
+    match.SetPattern("*a*a*a*a*a*a*a*a*a*a*a*a*a*a*");
+    EXPECT_TRUE(match.FullMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 }

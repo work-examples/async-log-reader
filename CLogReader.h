@@ -14,8 +14,6 @@
 class CLogReader final
 {
 public:
-    CLogReader();
-
     // open file; return false on error
     // Supported encoding for file data: utf-8, any single-byte encodings (with ASCII backward support)
     // Supported line endings: CRLF, LF (\r\n, \n)

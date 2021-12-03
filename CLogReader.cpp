@@ -1,10 +1,6 @@
 #include "CLogReader.h"
 
 
-CLogReader::CLogReader(): _lineMatcher(CLineReader::g_MaxLogLineLength)
-{
-}
-
 bool CLogReader::Open(const wchar_t* const filename)
 {
     this->Close();
@@ -32,7 +28,7 @@ void CLogReader::Close()
 
 bool CLogReader::SetFilter(const char* const filter)
 {
-    const bool succeeded = this->_lineMatcher.SetFilter(filter);
+    const bool succeeded = this->_lineMatcher.SetPattern(filter);
     return succeeded;
 }
 
@@ -59,7 +55,7 @@ std::optional<std::string_view> CLogReader::GetNextLine()
             }
         }
 
-        const bool matched = this->_lineMatcher.CheckMatch(matchView);
+        const bool matched = this->_lineMatcher.FullMatch(matchView);
         if (matched)
         {
             // line matched

@@ -4,31 +4,20 @@
 
 #include <string_view> // this is STL, but it does not need exceptions
 
-#include <wchar.h> // for size_t
-
 
 class CFnMatch
 {
 public:
-    CFnMatch(const size_t maxLineLength);
+    bool SetPattern(const char* const pattern);  // set match filter; return false on error
 
-    bool SetFilter(const char* const filter);  // set line filter; return false on error
-
-    std::string_view GetFilter()
+    constexpr std::string_view GetPattern() const
     {
-        return { this->_filter.ptr, this->_filter.size };
+        return { this->_pattern.ptr, this->_pattern.size };
     }
 
-    // Single threaded! Don't try to matching few strings at the same time using the same CFnMatch object!
-    // This is done to reduce stack usage and to mostly to avoid memory allocation for _memo during every call.
-    bool CheckMatch(std::string_view text);
+    bool FullMatch(std::string_view text);
 
 protected:
-    bool CalculateMatch(const size_t filterPos, const size_t textPos); // returns 0/1 (bool)
-
-protected:
-    size_t           _maxLineLength = 0;
-    CCharBuffer      _filter;
-    CCharBuffer      _memo;
+    CCharBuffer      _pattern;
     std::string_view _text;
 };
