@@ -36,3 +36,8 @@ CLineReader - check null functor for read Data!
 
 try memchr instead for speed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+memo memset is SLOW!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+

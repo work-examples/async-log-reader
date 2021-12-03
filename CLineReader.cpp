@@ -28,7 +28,7 @@ CLineReader::CLineReader()
     this->_buffer.Allocate(ReadBufferSize);
 }
 
-bool CLineReader::Setup(std::function<CLineReader::ReadDataFunc> readData)
+bool CLineReader::Setup(const std::function<CLineReader::ReadDataFunc>& readData)
 {
     if (!readData || this->_buffer.ptr == nullptr)
     {
@@ -36,7 +36,7 @@ bool CLineReader::Setup(std::function<CLineReader::ReadDataFunc> readData)
         return false;
     }
 
-    this->_funcReadData = std::move(readData);
+    this->_funcReadData = readData;
     this->_bufferData = { this->_buffer.ptr, 0 };
     return true;
 }

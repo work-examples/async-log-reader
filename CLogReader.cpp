@@ -12,8 +12,8 @@ bool CLogReader::Open(const wchar_t* const filename)
     const bool succeeded = this->_file.Open(filename);
     if (succeeded)
     {
-        std::function<CLineReader::ReadDataFunc> funcReadData =
-            std::bind(&CScanFile::Read, this->_file, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        const std::function<CLineReader::ReadDataFunc> funcReadData =
+            std::bind(&CScanFile::Read, &this->_file, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
         const bool setupOk = this->_lineReader.Setup(funcReadData);
         if (!setupOk)

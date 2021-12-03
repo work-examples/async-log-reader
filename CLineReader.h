@@ -18,7 +18,7 @@ public:
 
     CLineReader();
 
-    bool Setup(std::function<ReadDataFunc> readData);
+    bool Setup(const std::function<CLineReader::ReadDataFunc>& readData);
 
     // request next matching line; line may contain '\0' and may end with '\n'; return false on error or EOF
     std::optional<std::string_view> GetNextLine();

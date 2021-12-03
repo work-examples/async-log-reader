@@ -81,6 +81,9 @@ bool CFnMatch::CheckMatch(std::string_view text)
 
 bool CFnMatch::CalculateMatch(const size_t filterPos, const size_t textPos)
 {
+    assert(filterPos <= this->_filter.size);
+    assert(textPos <= this->_text.size());
+
     char& memoResult = this->_memo.ptr[textPos * (this->_filter.size + 1) + filterPos];
     if (memoResult != NoValue)
     {

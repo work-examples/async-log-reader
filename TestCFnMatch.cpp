@@ -145,6 +145,16 @@ TEST(CFnMatch, MatchAsterisk1Inside)
     EXPECT_TRUE(match.CheckMatch("abXYXcd"));
 }
 
+TEST(CFnMatch, MatchAsterisks2Outside)
+{
+    CFnMatch match(20);
+    match.SetFilter("*abc*");
+    EXPECT_FALSE(match.CheckMatch(""));
+    EXPECT_TRUE(match.CheckMatch("abc"));
+    EXPECT_TRUE(match.CheckMatch("<abcd>"));
+    EXPECT_FALSE(match.CheckMatch("a-b-c"));
+}
+
 TEST(CFnMatch, MatchAsterisk3)
 {
     CFnMatch match(20);
