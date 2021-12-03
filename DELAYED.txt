@@ -1,8 +1,16 @@
-
-
-
+==========================================================
 TODO:
+==========================================================
 
+try memchr instead for speed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+__declspec(noinline) 
+
+
+==========================================================
+DONE:
+==========================================================
 
 
 try static CRT
@@ -34,16 +42,14 @@ add tests!
 CLineReader - check null functor for read Data!
 
 
-try memchr instead for speed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 memo memset is SLOW!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
     constexpr static size_t g_MaxLogLineLength = 3000; // including ending LF/CRLF;
 
 1. TODO: remove zero terminating for pattern
 2. rename to SetPATTERN
 3. update string_view!!!
+
+
 
 

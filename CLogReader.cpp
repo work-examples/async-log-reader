@@ -28,12 +28,27 @@ void CLogReader::Close()
 
 bool CLogReader::SetFilter(const char* const filter)
 {
-    const bool succeeded = this->_lineMatcher.SetPattern(filter);
-    return succeeded;
+    if (filter == nullptr)
+    {
+        return false;
+    }
+
+    const size_t patternLen = strlen(filter);
+    const bool allocatedOk = this->_pattern.Allocate(patternLen);
+    if (!allocatedOk)
+    {
+        return false;
+    }
+
+    memcpy(this->_pattern.ptr, filter, patternLen);
+
+    return true;
 }
 
 std::optional<std::string_view> CLogReader::GetNextLine()
 {
+    const std::string_view pattern = { this->_pattern.ptr, this->_pattern.size };
+
     while (true)
     {
         const auto line = this->_lineReader.GetNextLine();
@@ -55,7 +70,7 @@ std::optional<std::string_view> CLogReader::GetNextLine()
             }
         }
 
-        const bool matched = this->_lineMatcher.FullMatch(matchView);
+        const bool matched = this->_lineMatcher.Match(matchView, pattern);
         if (matched)
         {
             // line matched

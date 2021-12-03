@@ -1,28 +1,120 @@
 #include "CFnMatch.h"
 
-
-bool CFnMatch::SetPattern(const char* const pattern)
+bool CFnMatch::Match(const std::string_view text, const std::string_view pattern)
 {
-    if (pattern == nullptr)
+    const char* pText = text.data();
+    const char* const pTextEnd = pText + text.size();
+    const char* pPattern = pattern.data();
+    const char* const pPatternEnd = pPattern + pattern.size();
+
+    const char* pAsterisk = nullptr;
+    const char* pTempText = nullptr;
+
+    while (pText < pTextEnd)
     {
-        return false;
+        if (pPattern < pPatternEnd && *pPattern == '*')
+        {
+            pAsterisk = pPattern++;
+            pTempText = pText;
+        }
+        else if (pPattern < pPatternEnd && (
+            *pPattern == '?' ||
+            *pPattern == *pText
+            ))
+        {
+            ++pText;
+            ++pPattern;
+        }
+        else if (pAsterisk == nullptr)
+        {
+            // Characters do not match or pattern is used up
+            // and '*' was not met in the pattern before
+            return false;
+        }
+        else
+        {
+            // Backtrack and match one more character by '*'
+            pPattern = pAsterisk + 1;
+            pText = ++pTempText;
+        }
     }
 
-    const size_t patternLen = strlen(pattern);
-    const bool allocatedOk = this->_pattern.Allocate(patternLen);
-    if (!allocatedOk)
+    for (; pPattern < pPatternEnd; ++pPattern)
     {
-        return false;
+        if (*pPattern != '*')
+        {
+            return false;
+        }
     }
-
-    memcpy(this->_pattern.ptr, pattern, patternLen);
 
     return true;
 }
 
-bool CFnMatch::FullMatch(std::string_view text)
+#if 0
+bool CFnMatch::Match(const std::string_view text, const std::string_view pattern)
 {
-    std::string_view pattern = { this->_pattern.ptr, this->_pattern.size };
+    size_t patternPos = 0;
+    size_t textPos = 0;
+    size_t tempTextPos = 0;
+    ptrdiff_t asteriskPos = -1;
+    const char* const pText = text.data();
+    const char* const pPattern = pattern.data();
+    const size_t textLen = text.size();
+    const size_t patternLen = pattern.size();
+
+    while (textPos < textLen)
+    {
+        if (patternPos < patternLen)
+        {
+            const char patternChar = pPattern[patternPos];
+            switch (patternChar)
+            {
+            case '*':
+                asteriskPos = patternPos;
+                tempTextPos = textPos;
+                ++patternPos;
+                continue;
+            case '?':
+                ++textPos;
+                ++patternPos;
+                continue;
+            default:
+                if (patternChar == pText[textPos])
+                {
+                    ++textPos;
+                    ++patternPos;
+                    continue;
+                }
+            }
+        }
+
+        if (asteriskPos == -1)
+        {
+            // Characters do not match or pattern is used up
+            // and '*' was not met in the pattern before
+            return false;
+        }
+        else
+        {
+            // Backtrack and match one more character by '*'
+            patternPos = asteriskPos + 1;
+            ++tempTextPos;
+            textPos = tempTextPos;
+        }
+    }
+
+    if (pattern.find_first_not_of('*', patternPos) != pattern.npos)
+    {
+        return false;
+    }
+
+    return true;
+}
+#endif
+
+#if 0
+__declspec(noinline) bool CFnMatch::Match(const std::string_view text, const std::string_view pattern)
+{
     size_t patternPos = 0;
     size_t textPos = 0;
     size_t tempTextPos = 0;
@@ -59,13 +151,12 @@ bool CFnMatch::FullMatch(std::string_view text)
         }
     }
 
-    for (; patternPos < pattern.size(); ++patternPos)
+    // Rest of the pattern can contain only asterisks
+    if (pattern.find_first_not_of('*', patternPos) != pattern.npos)
     {
-        if (pattern[patternPos] != '*')
-        {
-            return false;
-        }
+        return false;
     }
 
     return true;
 }
+#endif

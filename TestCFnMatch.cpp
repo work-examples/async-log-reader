@@ -3,157 +3,127 @@
 #include "gtest/gtest.h"
 
 
-TEST(CFnMatch, SetFilter_Empty)
-{
-    CFnMatch match;
-    match.SetPattern("");
-    EXPECT_EQ(match.GetPattern(), "");
-}
-
-TEST(CFnMatch, SetFilter_Text)
-{
-    CFnMatch match;
-    match.SetPattern("abc");
-    EXPECT_EQ(match.GetPattern(), "abc");
-}
-
-TEST(CFnMatch, SetFilter_QuestionMarks)
-{
-    CFnMatch match;
-    match.SetPattern("??a??b??c??");
-    EXPECT_EQ(match.GetPattern(), "??a??b??c??");
-}
-
-TEST(CFnMatch, SetFilter_Asterisks)
-{
-    CFnMatch match;
-    match.SetPattern("***abc***def***");
-    EXPECT_EQ(match.GetPattern(), "***abc***def***");
-}
-
-//////////////////////////////////////////////////////////////////////////
-
 TEST(CFnMatch, MatchEmpty)
 {
     CFnMatch match;
-    match.SetPattern("");
-    EXPECT_TRUE(match.FullMatch(""));
-    EXPECT_FALSE(match.FullMatch("a"));
+    const char* const pattern = "";
+    EXPECT_TRUE(match.Match("", pattern));
+    EXPECT_FALSE(match.Match("a", pattern));
 }
 
 TEST(CFnMatch, MatchText)
 {
     CFnMatch match;
-    match.SetPattern("abc");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_FALSE(match.FullMatch("a"));
-    EXPECT_FALSE(match.FullMatch("cba"));
-    EXPECT_TRUE(match.FullMatch("abc"));
-    EXPECT_FALSE(match.FullMatch("pre abc post"));
+    const char* const pattern = "abc";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_FALSE(match.Match("a", pattern));
+    EXPECT_FALSE(match.Match("cba, pattern", pattern));
+    EXPECT_TRUE(match.Match("abc", pattern));
+    EXPECT_FALSE(match.Match("pre abc post", pattern));
 }
 
 TEST(CFnMatch, MatchQuestionMark1)
 {
     CFnMatch match;
-    match.SetPattern("?");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_TRUE(match.FullMatch("a"));
-    EXPECT_TRUE(match.FullMatch("?"));
-    EXPECT_TRUE(match.FullMatch("*"));
-    EXPECT_FALSE(match.FullMatch("abc"));
+    const char* const pattern = "?";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_TRUE(match.Match("a", pattern));
+    EXPECT_TRUE(match.Match("?", pattern));
+    EXPECT_TRUE(match.Match("*", pattern));
+    EXPECT_FALSE(match.Match("abc", pattern));
 }
 
 TEST(CFnMatch, MatchQuestionMark2)
 {
     CFnMatch match;
-    match.SetPattern("ab??cd");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_FALSE(match.FullMatch("abcd"));
-    EXPECT_FALSE(match.FullMatch("abXcd"));
-    EXPECT_TRUE(match.FullMatch("ab??cd"));
-    EXPECT_TRUE(match.FullMatch("abXYcd"));
-    EXPECT_FALSE(match.FullMatch("abXYZcd"));
+    const char* const pattern = "ab??cd";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_FALSE(match.Match("abcd", pattern));
+    EXPECT_FALSE(match.Match("abXcd", pattern));
+    EXPECT_TRUE(match.Match("ab??cd", pattern));
+    EXPECT_TRUE(match.Match("abXYcd", pattern));
+    EXPECT_FALSE(match.Match("abXYZcd", pattern));
 }
 
 TEST(CFnMatch, MatchAsterisk1)
 {
     CFnMatch match;
-    match.SetPattern("*");
-    EXPECT_TRUE(match.FullMatch(""));
-    EXPECT_TRUE(match.FullMatch("a"));
-    EXPECT_TRUE(match.FullMatch("abc"));
-    EXPECT_TRUE(match.FullMatch("?"));
-    EXPECT_TRUE(match.FullMatch("???"));
-    EXPECT_TRUE(match.FullMatch("*"));
-    EXPECT_TRUE(match.FullMatch("***"));
+    const char* const pattern = "*";
+    EXPECT_TRUE(match.Match("", pattern));
+    EXPECT_TRUE(match.Match("a", pattern));
+    EXPECT_TRUE(match.Match("abc", pattern));
+    EXPECT_TRUE(match.Match("?", pattern));
+    EXPECT_TRUE(match.Match("???", pattern));
+    EXPECT_TRUE(match.Match("*", pattern));
+    EXPECT_TRUE(match.Match("***", pattern));
 }
 
 TEST(CFnMatch, MatchAsterisk1Prefix)
 {
     CFnMatch match;
-    match.SetPattern("a*");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_TRUE(match.FullMatch("a"));
-    EXPECT_TRUE(match.FullMatch("abc"));
-    EXPECT_FALSE(match.FullMatch("Xa"));
-    EXPECT_FALSE(match.FullMatch("Xabc"));
-    EXPECT_FALSE(match.FullMatch("**"));
-    EXPECT_FALSE(match.FullMatch("?*"));
+    const char* const pattern = "a*";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_TRUE(match.Match("a", pattern));
+    EXPECT_TRUE(match.Match("abc", pattern));
+    EXPECT_FALSE(match.Match("Xa", pattern));
+    EXPECT_FALSE(match.Match("Xabc", pattern));
+    EXPECT_FALSE(match.Match("**", pattern));
+    EXPECT_FALSE(match.Match("?*", pattern));
 }
 
 TEST(CFnMatch, MatchAsterisk1Postfix)
 {
     CFnMatch match;
-    match.SetPattern("*a");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_TRUE(match.FullMatch("a"));
-    EXPECT_TRUE(match.FullMatch("cba"));
-    EXPECT_FALSE(match.FullMatch("aX"));
-    EXPECT_FALSE(match.FullMatch("cbaX"));
-    EXPECT_FALSE(match.FullMatch("**"));
-    EXPECT_FALSE(match.FullMatch("*?"));
+    const char* const pattern = "*a";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_TRUE(match.Match("a", pattern));
+    EXPECT_TRUE(match.Match("cba", pattern));
+    EXPECT_FALSE(match.Match("aX", pattern));
+    EXPECT_FALSE(match.Match("cbaX", pattern));
+    EXPECT_FALSE(match.Match("**", pattern));
+    EXPECT_FALSE(match.Match("*?", pattern));
 }
 
 TEST(CFnMatch, MatchAsterisk1Inside)
 {
     CFnMatch match;
-    match.SetPattern("ab*cd");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_FALSE(match.FullMatch("<abcd>"));
-    EXPECT_TRUE(match.FullMatch("abcd"));
-    EXPECT_TRUE(match.FullMatch("abXYXcd"));
+    const char* const pattern = "ab*cd";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_FALSE(match.Match("<abcd>", pattern));
+    EXPECT_TRUE(match.Match("abcd", pattern));
+    EXPECT_TRUE(match.Match("abXYXcd", pattern));
 }
 
 TEST(CFnMatch, MatchAsterisk2Outside)
 {
     CFnMatch match;
-    match.SetPattern("*abc*");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_TRUE(match.FullMatch("abc"));
-    EXPECT_TRUE(match.FullMatch("<abcd>"));
-    EXPECT_FALSE(match.FullMatch("a-b-c"));
+    const char* const pattern = "*abc*";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_TRUE(match.Match("abc", pattern));
+    EXPECT_TRUE(match.Match("<abcd>", pattern));
+    EXPECT_FALSE(match.Match("a-b-c", pattern));
 }
 
 TEST(CFnMatch, MatchAsterisk3)
 {
     CFnMatch match;
-    match.SetPattern("*ab*cd*");
-    EXPECT_FALSE(match.FullMatch(""));
-    EXPECT_FALSE(match.FullMatch("a b c d"));
-    EXPECT_TRUE(match.FullMatch("abcd"));
-    EXPECT_TRUE(match.FullMatch("-=<ab><cd>=-"));
+    const char* const pattern = "*ab*cd*";
+    EXPECT_FALSE(match.Match("", pattern));
+    EXPECT_FALSE(match.Match("a b c d", pattern));
+    EXPECT_TRUE(match.Match("abcd", pattern));
+    EXPECT_TRUE(match.Match("-=<ab><cd>=-", pattern));
 }
 
 TEST(CFnMatch, MatchSpeedTest1)
 {
     CFnMatch match;
-    match.SetPattern("*******************");
-    EXPECT_TRUE(match.FullMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    const char* const pattern = "*******************";
+    EXPECT_TRUE(match.Match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", pattern));
 }
 
 TEST(CFnMatch, MatchSpeedTest2)
 {
     CFnMatch match;
-    match.SetPattern("*a*a*a*a*a*a*a*a*a*a*a*a*a*a*");
-    EXPECT_TRUE(match.FullMatch("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    const char* const pattern = "*a*a*a*a*a*a*a*a*a*a*a*a*a*a*";
+    EXPECT_TRUE(match.Match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", pattern));
 }

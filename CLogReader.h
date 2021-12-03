@@ -50,5 +50,6 @@ public:
 protected:
     CScanFile   _file;
     CLineReader _lineReader;
+    CCharBuffer _pattern;
     CFnMatch    _lineMatcher;
 };
