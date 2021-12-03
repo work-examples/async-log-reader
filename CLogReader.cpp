@@ -43,12 +43,26 @@ std::optional<std::string_view> CLogReader::GetNextLine()
         const auto line = this->_lineReader.GetNextLine();
         if (!line)
         {
-            return line;
+            // error or end of file
+            return {};
         }
 
-        const bool matched = this->_lineMatcher.CheckMatch(*line);
+        std::string_view matchView = *line;
+
+        // Ignore CRLF/LF during matching:
+        if (!matchView.empty() && matchView.back() == '\n')
+        {
+            matchView.remove_suffix(1);
+            if (!matchView.empty() && matchView.back() == '\r')
+            {
+                matchView.remove_suffix(1);
+            }
+        }
+
+        const bool matched = this->_lineMatcher.CheckMatch(matchView);
         if (matched)
         {
+            // line matched
             return line;
         }
     }

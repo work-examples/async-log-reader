@@ -149,3 +149,49 @@ TEST(CLineReader, ThreeLines)
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
+
+TEST(CLineReader, LineMaxLength_1)
+{
+    const std::string str = std::string(CLineReader::g_MaxLogLineLength, 'x');
+    FileMock file(str);
+    CLineReader reader;
+    reader.Setup(file.GetReadFunc());
+    auto line = reader.GetNextLine();
+    EXPECT_TRUE(line);
+    EXPECT_EQ(*line, str);
+    line = reader.GetNextLine();
+    EXPECT_FALSE(line);
+}
+
+TEST(CLineReader, LineMaxLength_2)
+{
+    const std::string str = std::string(CLineReader::g_MaxLogLineLength - 1, 'x');
+    FileMock file(str + "\n");
+    CLineReader reader;
+    reader.Setup(file.GetReadFunc());
+    auto line = reader.GetNextLine();
+    EXPECT_TRUE(line);
+    EXPECT_EQ(*line, str + "\n");
+    line = reader.GetNextLine();
+    EXPECT_FALSE(line);
+}
+
+TEST(CLineReader, LineTooLong_1)
+{
+    const std::string str = std::string(CLineReader::g_MaxLogLineLength + 1, 'x');
+    FileMock file(str);
+    CLineReader reader;
+    reader.Setup(file.GetReadFunc());
+    auto line = reader.GetNextLine();
+    EXPECT_FALSE(line);
+}
+
+TEST(CLineReader, LineTooLong_2)
+{
+    const std::string str = std::string(CLineReader::g_MaxLogLineLength, 'x');
+    FileMock file(str + "\n");
+    CLineReader reader;
+    reader.Setup(file.GetReadFunc());
+    auto line = reader.GetNextLine();
+    EXPECT_FALSE(line);
+}

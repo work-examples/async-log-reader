@@ -4,24 +4,9 @@
 
 #include "CLogReader.h"
 
-#include <functional>
-
-class AAA
-{
-public:
-    void f123()
-    {
-
-    }
-};
 
 int wmain(const int argc, const wchar_t* const argv[])
 {
-    AAA a;
-    using dd = void();
-    std::function<dd> ff = std::bind(&AAA::f123, a);
-    std::function<dd> ff2 = ff;
-
     if (argc <= 2)
     {
         wprintf(L"Error! Not enough command line arguments!\n");
@@ -52,27 +37,25 @@ int wmain(const int argc, const wchar_t* const argv[])
         return 2;
     }
 
-    char buffer[2000] = "";
-
     while (true)
     {
-        size_t readBytes = 0;
-        const bool readOk = reader.GetNextLine(buffer, sizeof(buffer), readBytes);
-        if (!readOk)
+        const auto line = reader.GetNextLine();
+        if (!line)
         {
             break;
         }
 
-        if (readBytes > 0)
-        {
-            fwrite(buffer, readBytes, 1, stdout);
+        fwrite(line->data(), line->size(), 1, stdout);
 
-            // Add missing EOL for the last line of file:
-            if (buffer[readBytes - 1] != '\n')
-            {
-                fwrite("\n", 1, 1, stdout);
-            }
-        }
+        // Add optionally missing EOL after the last line of the file:
+        // CLineReader gives guarantee line is never empty, but it is better to check to be safe:
+        //if (line->size() > 0)
+        //{
+        //    if (line->data()[line->size() - 1] != '\n')
+        //    {
+        //        fwrite("\n", 1, 1, stdout);
+        //    }
+        //}
     }
 
     reader.Close();

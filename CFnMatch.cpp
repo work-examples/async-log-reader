@@ -3,6 +3,12 @@
 #include <assert.h>
 
 
+namespace
+{
+    constexpr char NoValue = 3;
+}
+
+
 CFnMatch::CFnMatch(const size_t maxLineLength) : _maxLineLength(maxLineLength)
 {
 }
@@ -50,14 +56,59 @@ bool CFnMatch::SetFilter(const char* const filter)
 
     // Allocate memory for Dynamic Programming results storage during future calls to CheckMatch():
 
-    this->_memo.Allocate(this->_maxLineLength * effectiveLength);
+    this->_memo.Allocate((this->_maxLineLength + 1) * (effectiveLength + 1));
 
     return true;
 }
 
-
-bool CFnMatch::CheckMatch(std::string_view str)
+bool CFnMatch::CheckMatch(std::string_view text)
 {
-    // TODO: IMPLEMENT!!!!!!!!!!!!!!!
-    return true;
+    if (text.size() > this->_maxLineLength)
+    {
+        assert(false && "This should never happen if CFnMatch caller has no bugs");
+        return false;
+    }
+
+    const size_t memoSize = (this->_filter.size + 1) * (text.size() + 1);
+    assert(memoSize <= this->_memo.size);
+    memset(this->_memo.ptr, NoValue, memoSize);
+
+    this->_text = text;
+
+    const bool result = this->CalculateMatch(0, 0);
+    return result;
+}
+
+bool CFnMatch::CalculateMatch(const size_t filterPos, const size_t textPos)
+{
+    char& memoResult = this->_memo.ptr[textPos * (this->_filter.size + 1) + filterPos];
+    if (memoResult != NoValue)
+    {
+        return memoResult;
+    }
+
+    bool result = false;
+
+    if (filterPos == this->_filter.size)
+    {
+        result = textPos == this->_text.size();
+    }
+    else
+    {
+        const bool currentMatch = textPos < this->_text.size() && (
+            this->_filter.ptr[filterPos] == this->_text[textPos] ||
+            this->_filter.ptr[filterPos] == '?'
+            );
+        if (filterPos + 1 < this->_filter.size && this->_filter.ptr[filterPos + 1] == '*')
+        {
+            result = this->CalculateMatch(filterPos + 2, textPos) || (currentMatch && this->CalculateMatch(filterPos, textPos + 1));
+        }
+        else
+        {
+            result = currentMatch && this->CalculateMatch(filterPos + 1, textPos + 1);
+        }
+    }
+
+    memoResult = static_cast<char>(result);
+    return result;
 }
