@@ -4,7 +4,7 @@
 
 #include <atlcomcli.h>
 
-#include "CLogReader.h"
+#include "LogReader.h"
 
 
 int wmain(const int argc, const wchar_t* const argv[])

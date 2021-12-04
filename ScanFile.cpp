@@ -1,4 +1,4 @@
-#include "CScanFile.h"
+#include "ScanFile.h"
 
 #include <assert.h>
 
@@ -27,10 +27,7 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
     const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN | (asyncMode ? FILE_FLAG_OVERLAPPED : 0); // read the comment below
 
     // FILE_FLAG_SEQUENTIAL_SCAN gives a cache speed optimization for pattern when file is read once from the beginning to the end
-    //
-    // We can also use async file reading, but it will complicate the code and has its own trade offs related with additional regular calls to kernel mode.
-    // I'm sure FILE_FLAG_SEQUENTIAL_SCAN will force Windows to act with similar performance to what we could get using Async IO.
-    // However I did no performance checks for this guess.
+    // According to my tests FILE_FLAG_SEQUENTIAL_SCAN does no measurable impact but I would prefer to keep it here.
 
     this->_hFile = CreateFileW(filename, dwDesiredAccess, dwShareMode, nullptr, dwCreationDisposition, dwFlagsAndAttributes, nullptr);
 
@@ -73,7 +70,7 @@ void CScanFile::Close()
     this->_operationInProgress = false;
 }
 
-bool CScanFile::Read(char* buffer, const size_t bufferLength, size_t& readBytes)
+bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& readBytes)
 {
     if (this->_hFile == nullptr || buffer == nullptr)
     {
@@ -95,7 +92,7 @@ bool CScanFile::Read(char* buffer, const size_t bufferLength, size_t& readBytes)
     return !!succeeded;
 }
 
-bool CScanFile::AsyncReadStart(char* buffer, const size_t bufferLength)
+bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
 {
     if (this->_hFile == nullptr || buffer == nullptr || this->_operationInProgress)
     {

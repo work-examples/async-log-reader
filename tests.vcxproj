@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CCharBuffer.h" />
-    <ClInclude Include="CFnMatch.h" />
-    <ClInclude Include="CLineReader.h" />
+    <ClInclude Include="CharBuffer.h" />
+    <ClInclude Include="FnMatch.h" />
+    <ClInclude Include="LineReader.h" />
     <ClInclude Include="gtest\include\gtest\gtest-death-test.h" />
     <ClInclude Include="gtest\include\gtest\gtest-matchers.h" />
     <ClInclude Include="gtest\include\gtest\gtest-message.h" />
@@ -33,15 +33,19 @@
     <ClInclude Include="gtest\include\gtest\gtest.h" />
     <ClInclude Include="gtest\include\gtest\gtest_pred_impl.h" />
     <ClInclude Include="gtest\include\gtest\gtest_prod.h" />
+    <ClInclude Include="ScanFile.h" />
+    <ClInclude Include="TestHelpers.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CCharBuffer.cpp" />
-    <ClCompile Include="CFnMatch.cpp" />
-    <ClCompile Include="CLineReader.cpp" />
+    <ClCompile Include="CharBuffer.cpp" />
+    <ClCompile Include="FnMatch.cpp" />
+    <ClCompile Include="LineReader.cpp" />
     <ClCompile Include="gtest\src\gtest-all.cc" />
     <ClCompile Include="gtest\src\gtest_main.cc" />
-    <ClCompile Include="TestCFnMatch.cpp" />
-    <ClCompile Include="TestCLineReader.cpp" />
+    <ClCompile Include="ScanFile.cpp" />
+    <ClCompile Include="TestFnMatch.cpp" />
+    <ClCompile Include="TestHelpers.cpp" />
+    <ClCompile Include="TestLineReader.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

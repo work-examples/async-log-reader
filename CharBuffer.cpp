@@ -1,4 +1,4 @@
-#include "CCharBuffer.h"
+#include "CharBuffer.h"
 
 #include <stdlib.h>
 

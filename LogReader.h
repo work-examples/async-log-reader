@@ -1,9 +1,8 @@
 #pragma once
 
-#include "CCharBuffer.h"
-#include "CFnMatch.h"
-#include "CLineReader.h"
-#include "CScanFile.h"
+#include "CharBuffer.h"
+#include "FnMatch.h"
+#include "LineReader.h"
 
 #include <optional>
 #include <string_view>
@@ -48,8 +47,7 @@ public:
     }
 
 protected:
-    CScanFile   _file;
-    CLineReader _lineReader;
-    CCharBuffer _pattern;
-    CFnMatch    _lineMatcher;
+    CSyncLineReader  _lineReader;
+    CCharBuffer      _pattern;
+    CFnMatch         _lineMatcher;
 };

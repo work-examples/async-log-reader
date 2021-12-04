@@ -14,36 +14,36 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLogReader.cpp">
+    <ClCompile Include="LogReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CFnMatch.cpp">
+    <ClCompile Include="FnMatch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CScanFile.cpp">
+    <ClCompile Include="ScanFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CCharBuffer.cpp">
+    <ClCompile Include="CharBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLineReader.cpp">
+    <ClCompile Include="LineReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CLogReader.h">
+    <ClInclude Include="LogReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CFnMatch.h">
+    <ClInclude Include="FnMatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CScanFile.h">
+    <ClInclude Include="ScanFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CCharBuffer.h">
+    <ClInclude Include="CharBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CLineReader.h">
+    <ClInclude Include="LineReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

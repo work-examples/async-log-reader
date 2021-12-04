@@ -56,13 +56,19 @@
     <ClInclude Include="gtest\include\gtest\gtest-typed-test.h">
       <Filter>gtest\include</Filter>
     </ClInclude>
-    <ClInclude Include="CCharBuffer.h">
+    <ClInclude Include="CharBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CFnMatch.h">
+    <ClInclude Include="FnMatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CLineReader.h">
+    <ClInclude Include="LineReader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ScanFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TestHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -73,20 +79,26 @@
     <ClCompile Include="gtest\src\gtest-all.cc">
       <Filter>gtest\src</Filter>
     </ClCompile>
-    <ClCompile Include="CCharBuffer.cpp">
+    <ClCompile Include="CharBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CFnMatch.cpp">
+    <ClCompile Include="FnMatch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLineReader.cpp">
+    <ClCompile Include="LineReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TestCLineReader.cpp">
+    <ClCompile Include="TestLineReader.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
-    <ClCompile Include="TestCFnMatch.cpp">
+    <ClCompile Include="TestFnMatch.cpp">
       <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="ScanFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestHelpers.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

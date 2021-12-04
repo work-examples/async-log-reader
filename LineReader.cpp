@@ -1,4 +1,4 @@
-#include "CLineReader.h"
+#include "LineReader.h"
 
 #include <assert.h>
 
@@ -6,48 +6,42 @@
 namespace
 {
     const size_t MaxKnownNtfsClusterSize = 65536;
-    const size_t MaxLogLineLength = CLineReader::g_MaxLogLineLength; // including ending LF/CRLF;
+    const size_t MaxLogLineLength = 1024; // including ending LF/CRLF;
 
-    // We need to read lots of lines in a single file read operation to optimize speed:
-    // - less jumps to kernel mode
-    // - less memory copying of the last partially read line
-    const size_t MinimumLinesInReadBlock = 100;
-    const size_t ReadChunkSize = (MaxLogLineLength * MinimumLinesInReadBlock + MaxKnownNtfsClusterSize - 1) / MaxKnownNtfsClusterSize * MaxKnownNtfsClusterSize;
+    const size_t ReadChunkSize = MaxKnownNtfsClusterSize * 2;
 
     // check the formula for ReadBlockSize is correct:
-    static_assert(ReadChunkSize >= MaxLogLineLength * 2);
-    static_assert(ReadChunkSize >= MaxLogLineLength * MinimumLinesInReadBlock);
-    static_assert(ReadChunkSize < MaxLogLineLength* MinimumLinesInReadBlock + MaxKnownNtfsClusterSize);
+    static_assert(ReadChunkSize >= MaxLogLineLength); // we need this to guarantee there will be no data loss while moving incomplete line to the beginning of the buffer
     static_assert(ReadChunkSize % MaxKnownNtfsClusterSize == 0);
 
     const size_t ReadBufferSize = ReadChunkSize + MaxLogLineLength;
 }
 
 
-CLineReader::CLineReader()
+CSyncLineReader::CSyncLineReader()
 {
     this->_buffer.Allocate(ReadBufferSize);
 }
 
-bool CLineReader::Setup(const std::function<CLineReader::ReadDataFunc>& readData)
+bool CSyncLineReader::Open(const wchar_t* const filename)
 {
-    if (!readData || this->_buffer.ptr == nullptr)
-    {
-        // Bad argument or failed to allocate memory
-        return false;
-    }
+    this->Close();
+    const bool bAsyncMode = false;
+    const bool succeeded = this->_file.Open(filename, bAsyncMode);
+    this->_bufferData = std::string_view(this->_buffer.ptr, 0);
+    return succeeded;
+}
 
-    this->_funcReadData = readData;
-    this->_bufferData = { this->_buffer.ptr, 0 };
-    return true;
+void CSyncLineReader::Close()
+{
+    this->_file.Close();
 }
 
 //__declspec(noinline) // noinline is added to help CPU profiling in release version
-std::optional<std::string_view> CLineReader::GetNextLine()
+std::optional<std::string_view> CSyncLineReader::GetNextLine()
 {
     // Find EOL:
-    const char chEOL = '\n';
-    size_t eolOffset = this->_bufferData.find(chEOL);
+    size_t eolOffset = this->_bufferData.find('\n');
 
     if (eolOffset == this->_bufferData.npos)
     {
@@ -60,27 +54,22 @@ std::optional<std::string_view> CLineReader::GetNextLine()
         }
 
         const size_t prefixLength = this->_bufferData.size();
-        assert(prefixLength <= MaxLogLineLength && "the rest of buffer is not too big for moving to beginning");
+        assert(prefixLength <= MaxLogLineLength && "the rest of buffer is too big for moving to beginning");
+        char* const newDataBufferPtr = this->_buffer.ptr + MaxLogLineLength - prefixLength;
 
-        memmove(this->_buffer.ptr, this->_bufferData.data(), prefixLength);
+        // don't need memmove since the whole high level algorithm will fail if buffers overlap
+        memcpy(newDataBufferPtr, this->_bufferData.data(), prefixLength);
 
         // Read missing data:
-        if (!this->_funcReadData)
-        {
-            // _readData functor is not initialized by Setup()
-            return {};
-        }
-
         size_t readBytes = 0;
-        assert(prefixLength + ReadChunkSize <= ReadBufferSize && "buffer is big enough to receive all data");
-        const bool readOk = this->_funcReadData(this->_buffer.ptr + prefixLength, ReadChunkSize, readBytes);
+        const bool readOk = this->_file.Read(this->_buffer.ptr + MaxLogLineLength, ReadChunkSize, readBytes);
         if (!readOk)
         {
             // Reading data failed
             return {};
         }
 
-        this->_bufferData = { this->_buffer.ptr, prefixLength + readBytes };
+        this->_bufferData = { newDataBufferPtr, prefixLength + readBytes };
 
         if (this->_bufferData.empty())
         {
@@ -92,7 +81,7 @@ std::optional<std::string_view> CLineReader::GetNextLine()
 
         // Search EOL again after reading additional data:
         // I expect we read either ReadChunkSize bytes or we read the data chunk in file.
-        eolOffset = this->_bufferData.find(chEOL, prefixLength);
+        eolOffset = this->_bufferData.find('\n', prefixLength);
         if (eolOffset == this->_bufferData.npos)
         {
             if (this->_bufferData.size() > MaxLogLineLength)
@@ -104,7 +93,7 @@ std::optional<std::string_view> CLineReader::GetNextLine()
             // Found last line after reading missing data
             const std::string_view result = this->_bufferData;
             this->_bufferData = { this->_buffer.ptr, 0 };
-            assert(!result.empty() && "last line without LF should be non empty");
+            assert(!result.empty() && "last line without LF should be not empty");
             return result;
         }
     }

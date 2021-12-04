@@ -1,7 +1,8 @@
-#include "CLineReader.h"
+#include "LineReader.h"
+
+#include "TestHelpers.h"
 
 #include <algorithm>
-#include <functional>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -9,30 +10,9 @@
 
 namespace
 {
-    class FileMock
-    {
-    public:
-        FileMock(const std::string& data): _data(data)
-        {
-        }
+    using CLineReader = CSyncLineReader;
 
-        bool Read(char* buffer, const size_t bufferLength, size_t& readBytes)
-        {
-            readBytes = std::min(bufferLength, this->_data.size() - this->_dataOffset);
-            memcpy(buffer, _data.data() + this->_dataOffset, readBytes);
-            this->_dataOffset += readBytes;
-            return true;
-        }
-
-        std::function<CLineReader::ReadDataFunc> GetReadFunc()
-        {
-            return std::bind(&FileMock::Read, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-        }
-
-    protected:
-        std::string _data;
-        size_t      _dataOffset = 0;
-    };
+    const size_t MaxLogLineLength = 1024; // copy-pasted value from LineReader.cpp
 }
 
 TEST(CLineReader, MissedSetup)
@@ -44,118 +24,118 @@ TEST(CLineReader, MissedSetup)
 
 TEST(CLineReader, EmptyFile)
 {
-    FileMock file("");
+    TempFile file("");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     const auto line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, OneLineNoLF)
 {
-    FileMock file("ABCD");
+    TempFile file("ABCD");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "ABCD");
+    EXPECT_EQ(std::string(*line), "ABCD");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, OneLineCRLF)
 {
-    FileMock file("ABCD\r\n");
+    TempFile file("ABCD\r\n");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "ABCD\r\n");
+    EXPECT_EQ(std::string(*line), "ABCD\r\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, OneLineLF)
 {
-    FileMock file("ABCD\n");
+    TempFile file("ABCD\n");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "ABCD\n");
+    EXPECT_EQ(std::string(*line), "ABCD\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, TwoLinesLF_NoLF)
 {
-    FileMock file("abc\nDEFG");
+    TempFile file("abc\nDEFG");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "abc\n");
+    EXPECT_EQ(std::string(*line), "abc\n");
     line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "DEFG");
+    EXPECT_EQ(std::string(*line), "DEFG");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, TwoLinesLF_LF)
 {
-    FileMock file("abc\nDEFG\n");
+    TempFile file("abc\nDEFG\n");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "abc\n");
+    EXPECT_EQ(std::string(*line), "abc\n");
     line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "DEFG\n");
+    EXPECT_EQ(std::string(*line), "DEFG\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, EmptyLines)
 {
-    FileMock file("\n\n");
+    TempFile file("\n\n");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "\n");
+    EXPECT_EQ(std::string(*line), "\n");
     line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "\n");
+    EXPECT_EQ(std::string(*line), "\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, ThreeLines)
 {
-    FileMock file("Abcdef\n\n3rd Line");
+    TempFile file("Abcdef\n\n3rd Line");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "Abcdef\n");
+    EXPECT_EQ(std::string(*line), "Abcdef\n");
     line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "\n");
+    EXPECT_EQ(std::string(*line), "\n");
     line = reader.GetNextLine();
     EXPECT_TRUE(line);
-    EXPECT_EQ(*line, "3rd Line");
+    EXPECT_EQ(std::string(*line), "3rd Line");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, LineMaxLength_1)
 {
-    const std::string str = std::string(CLineReader::g_MaxLogLineLength, 'x');
-    FileMock file(str);
+    const std::string str = std::string(MaxLogLineLength, 'x');
+    TempFile file(str);
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
     EXPECT_EQ(*line, str);
@@ -165,10 +145,10 @@ TEST(CLineReader, LineMaxLength_1)
 
 TEST(CLineReader, LineMaxLength_2)
 {
-    const std::string str = std::string(CLineReader::g_MaxLogLineLength - 1, 'x');
-    FileMock file(str + "\n");
+    const std::string str = std::string(MaxLogLineLength - 1, 'x');
+    TempFile file(str + "\n");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_TRUE(line);
     EXPECT_EQ(*line, str + "\n");
@@ -178,20 +158,20 @@ TEST(CLineReader, LineMaxLength_2)
 
 TEST(CLineReader, LineTooLong_1)
 {
-    const std::string str = std::string(CLineReader::g_MaxLogLineLength + 1, 'x');
-    FileMock file(str);
+    const std::string str = std::string(MaxLogLineLength + 1, 'x');
+    TempFile file(str);
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }
 
 TEST(CLineReader, LineTooLong_2)
 {
-    const std::string str = std::string(CLineReader::g_MaxLogLineLength, 'x');
-    FileMock file(str + "\n");
+    const std::string str = std::string(MaxLogLineLength, 'x');
+    TempFile file(str + "\n");
     CLineReader reader;
-    reader.Setup(file.GetReadFunc());
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
     EXPECT_FALSE(line);
 }

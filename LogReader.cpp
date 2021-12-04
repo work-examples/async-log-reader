@@ -1,29 +1,17 @@
-#include "CLogReader.h"
+#include "LogReader.h"
 
 
 bool CLogReader::Open(const wchar_t* const filename)
 {
     this->Close();
 
-    const bool succeeded = this->_file.Open(filename, false);
-    if (succeeded)
-    {
-        const std::function<CLineReader::ReadDataFunc> funcReadData =
-            std::bind(&CScanFile::Read, &this->_file, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-
-        const bool setupOk = this->_lineReader.Setup(funcReadData);
-        if (!setupOk)
-        {
-            return false;
-        }
-    }
-
+    const bool succeeded = this->_lineReader.Open(filename);
     return succeeded;
 }
 
 void CLogReader::Close()
 {
-    this->_file.Close();
+    this->_lineReader.Close();
 }
 
 bool CLogReader::SetFilter(const char* const filter)
@@ -34,14 +22,13 @@ bool CLogReader::SetFilter(const char* const filter)
     }
 
     const size_t patternLen = strlen(filter);
-    const bool allocatedOk = this->_pattern.Allocate(patternLen + 1);
+    const bool allocatedOk = this->_pattern.Allocate(patternLen);
     if (!allocatedOk)
     {
         return false;
     }
 
-    memcpy(this->_pattern.ptr, filter, patternLen + 1);
-    this->_pattern.size -= 1; // ignore terminating zero
+    memcpy(this->_pattern.ptr, filter, patternLen);
 
     return true;
 }
