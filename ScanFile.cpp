@@ -106,7 +106,7 @@ bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
     this->_overlapped.OffsetHigh = this->_fileOffset.HighPart;
 
     const BOOL readOk = ReadFile(this->_hFile, buffer, usedBufferLength, nullptr, &this->_overlapped);
-    if (!readOk)
+    if (!readOk && GetLastError() != ERROR_IO_PENDING)
     {
         return false;
     }
@@ -131,6 +131,13 @@ bool CScanFile::AsyncReadWait(size_t& readBytes)
     if (!overlappedOk)
     {
         this->_operationInProgress = false; // I'm not sure this is correct
+        if (GetLastError() == ERROR_HANDLE_EOF)
+        {
+            assert(numberOfBytesRead == 0);
+            // Emulate usual ReadFile() logic when reading at the end succeeds with zero bytes read
+            readBytes = 0;
+            return true;
+        }
         return false;
     }
 

@@ -47,7 +47,11 @@ public:
     }
 
 protected:
+#if 1
     CSyncLineReader  _lineReader;
+#else
+    CAsyncLineReader _lineReader;
+#endif
     CCharBuffer      _pattern;
     CFnMatch         _lineMatcher;
 };

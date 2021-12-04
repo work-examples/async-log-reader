@@ -10,12 +10,25 @@
 
 namespace
 {
+#if 0
     using CLineReader = CSyncLineReader;
+#else
+    using CLineReader = CAsyncLineReader;
+#endif
 
     const size_t MaxLogLineLength = 1024; // copy-pasted value from LineReader.cpp
 }
 
-TEST(CLineReader, MissedSetup)
+
+TEST(CLineReader, Open)
+{
+    TempFile file("");
+    CLineReader reader;
+    EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
+    reader.Close();
+}
+
+TEST(CLineReader, MissedOpen)
 {
     CLineReader reader;
     const auto line = reader.GetNextLine();
@@ -37,7 +50,7 @@ TEST(CLineReader, OneLineNoLF)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "ABCD");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -49,7 +62,7 @@ TEST(CLineReader, OneLineCRLF)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "ABCD\r\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -61,7 +74,7 @@ TEST(CLineReader, OneLineLF)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "ABCD\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -73,10 +86,10 @@ TEST(CLineReader, TwoLinesLF_NoLF)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "abc\n");
     line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "DEFG");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -88,10 +101,10 @@ TEST(CLineReader, TwoLinesLF_LF)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "abc\n");
     line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "DEFG\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -103,10 +116,10 @@ TEST(CLineReader, EmptyLines)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "\n");
     line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -118,13 +131,13 @@ TEST(CLineReader, ThreeLines)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "Abcdef\n");
     line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "\n");
     line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(std::string(*line), "3rd Line");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -137,7 +150,7 @@ TEST(CLineReader, LineMaxLength_1)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(*line, str);
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
@@ -150,7 +163,7 @@ TEST(CLineReader, LineMaxLength_2)
     CLineReader reader;
     EXPECT_TRUE(reader.Open(file.GetFilename().c_str()));
     auto line = reader.GetNextLine();
-    EXPECT_TRUE(line);
+    ASSERT_TRUE(line);
     EXPECT_EQ(*line, str + "\n");
     line = reader.GetNextLine();
     EXPECT_FALSE(line);
