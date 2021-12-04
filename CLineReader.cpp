@@ -15,6 +15,7 @@ namespace
     const size_t ReadChunkSize = (MaxLogLineLength * MinimumLinesInReadBlock + MaxKnownNtfsClusterSize - 1) / MaxKnownNtfsClusterSize * MaxKnownNtfsClusterSize;
 
     // check the formula for ReadBlockSize is correct:
+    static_assert(ReadChunkSize >= MaxLogLineLength * 2);
     static_assert(ReadChunkSize >= MaxLogLineLength * MinimumLinesInReadBlock);
     static_assert(ReadChunkSize < MaxLogLineLength* MinimumLinesInReadBlock + MaxKnownNtfsClusterSize);
     static_assert(ReadChunkSize % MaxKnownNtfsClusterSize == 0);

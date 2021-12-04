@@ -115,10 +115,10 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <SDLCheck>false</SDLCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,12 +152,11 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <SDLCheck>false</SDLCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <Optimization>MaxSpeed</Optimization>
-      <OmitFramePointers>false</OmitFramePointers>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

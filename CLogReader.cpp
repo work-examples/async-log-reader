@@ -34,13 +34,14 @@ bool CLogReader::SetFilter(const char* const filter)
     }
 
     const size_t patternLen = strlen(filter);
-    const bool allocatedOk = this->_pattern.Allocate(patternLen);
+    const bool allocatedOk = this->_pattern.Allocate(patternLen + 1);
     if (!allocatedOk)
     {
         return false;
     }
 
-    memcpy(this->_pattern.ptr, filter, patternLen);
+    memcpy(this->_pattern.ptr, filter, patternLen + 1);
+    this->_pattern.size -= 1; // ignore terminating zero
 
     return true;
 }
