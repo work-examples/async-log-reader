@@ -2,6 +2,8 @@
 
 #include <wchar.h> // for size_t, wchar_t
 
+#include <windows.h>
+
 
 class CScanFile
 {
@@ -13,5 +15,8 @@ public:
     bool Read(char* buffer, const size_t bufferLength, size_t& readBytes);
 
 protected:
-    void* _file = nullptr; // I'm not using HANDLE here to avoid including windows.h in header and reduce compilation speed without PCH
+    HANDLE _hFile = nullptr;
+    HANDLE _hEvent = nullptr;
+    LARGE_INTEGER _fileOffset = {};
+    OVERLAPPED _overlapped = {};
 };

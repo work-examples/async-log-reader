@@ -6,7 +6,7 @@
 #if 1
 // Implementation with optimized speed (6.5x times faster in my dataset by than original naive implementation)
 
-__declspec(noinline) // noinline is added to help CPU profiling in release version
+//__declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CFnMatch::Match(const std::string_view text, const std::string_view pattern)
 {
     const char* pText = text.data();

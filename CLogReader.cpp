@@ -46,7 +46,6 @@ bool CLogReader::SetFilter(const char* const filter)
     return true;
 }
 
-__declspec(noinline) // noinline is added to help CPU profiling in release version
 std::optional<std::string_view> CLogReader::GetNextLine()
 {
     const std::string_view pattern = { this->_pattern.ptr, this->_pattern.size };
