@@ -42,6 +42,7 @@ bool CLineReader::Setup(const std::function<CLineReader::ReadDataFunc>& readData
     return true;
 }
 
+//__declspec(noinline) // noinline is added to help CPU profiling in release version
 std::optional<std::string_view> CLineReader::GetNextLine()
 {
     // Find EOL:
