@@ -45,7 +45,8 @@
     <ClCompile Include="ScanFile.cpp" />
     <ClCompile Include="TestFnMatch.cpp" />
     <ClCompile Include="TestHelpers.cpp" />
-    <ClCompile Include="TestLineReader.cpp" />
+    <ClCompile Include="TestLineReaderAsync.cpp" />
+    <ClCompile Include="TestLineReaderSync.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

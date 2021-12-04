@@ -5,6 +5,7 @@
 
 namespace
 {
+    const size_t MB = 1024 * 1024;
     const size_t MaxKnownNtfsClusterSize = 65536;
     const size_t MaxLogLineLength = 1024; // including ending LF/CRLF;
 
@@ -16,7 +17,8 @@ namespace
     static_assert(ReadChunkSize >= MaxLogLineLength); // we need this to guarantee there will be no data loss while moving incomplete line to the beginning of the buffer
     static_assert(ReadChunkSize % MaxKnownNtfsClusterSize == 0);
 
-    const size_t ReadBufferSize = ReadChunkSize + MaxLogLineLength;
+    const size_t ReadBufferSize = MaxLogLineLength + ReadChunkSize;
+    const size_t ReadBufferOffset = MaxLogLineLength;
 }
 
 
@@ -51,7 +53,7 @@ void CSyncLineReader::Close()
     this->_file.Close();
 }
 
-//__declspec(noinline) // noinline is added to help CPU profiling in release version
+__declspec(noinline) // noinline is added to help CPU profiling in release version
 std::optional<std::string_view> CSyncLineReader::GetNextLine()
 {
     if (this->_buffer.ptr == nullptr)
@@ -74,14 +76,14 @@ std::optional<std::string_view> CSyncLineReader::GetNextLine()
 
         const size_t prefixLength = this->_bufferData.size();
         assert(prefixLength <= MaxLogLineLength && "the rest of buffer is too big for moving to beginning");
-        char* const newDataBufferPtr = this->_buffer.ptr + MaxLogLineLength - prefixLength;
+        char* const newDataBufferPtr = this->_buffer.ptr + ReadBufferOffset - prefixLength;
 
         // don't need memmove since the whole high level algorithm will fail if buffers overlap
         memcpy(newDataBufferPtr, this->_bufferData.data(), prefixLength);
 
         // Read missing data:
         size_t readBytes = 0;
-        const bool readOk = this->_file.Read(this->_buffer.ptr + MaxLogLineLength, ReadChunkSize, readBytes);
+        const bool readOk = this->_file.Read(this->_buffer.ptr + ReadBufferOffset, ReadChunkSize, readBytes);
         if (!readOk)
         {
             // Reading data failed
@@ -164,7 +166,7 @@ bool CAsyncLineReader::Open(const wchar_t* const filename)
     this->_bufferData = std::string_view(this->_buffer1.ptr, 0);
     this->_firstBufferIsActive = true;
 
-    const bool readStartOk = this->_file.AsyncReadStart(this->_buffer2.ptr + MaxLogLineLength, ReadChunkSize);
+    const bool readStartOk = this->_file.AsyncReadStart(this->_buffer2.ptr + ReadBufferOffset, ReadChunkSize);
     if (!readStartOk)
     {
         this->_file.Close();
@@ -179,7 +181,7 @@ void CAsyncLineReader::Close()
     this->_file.Close();
 }
 
-//__declspec(noinline) // noinline is added to help CPU profiling in release version
+__declspec(noinline) // noinline is added to help CPU profiling in release version
 std::optional<std::string_view> CAsyncLineReader::GetNextLine()
 {
     if (this->_buffer1.ptr == nullptr)
@@ -206,7 +208,7 @@ std::optional<std::string_view> CAsyncLineReader::GetNextLine()
 
         const size_t prefixLength = this->_bufferData.size();
         assert(prefixLength <= MaxLogLineLength && "the rest of buffer is too big for moving to beginning");
-        char* const newDataBufferPtr = nextBuffer.ptr + MaxLogLineLength - prefixLength;
+        char* const newDataBufferPtr = nextBuffer.ptr + ReadBufferOffset - prefixLength;
 
         // don't need memmove since the whole high level algorithm will fail if buffers overlap
         memcpy(newDataBufferPtr, this->_bufferData.data(), prefixLength);
@@ -220,7 +222,7 @@ std::optional<std::string_view> CAsyncLineReader::GetNextLine()
         }
 
         // Read missing data:
-        const bool readOk = this->_file.AsyncReadStart(currentBuffer.ptr + MaxLogLineLength, ReadChunkSize);
+        const bool readOk = this->_file.AsyncReadStart(currentBuffer.ptr + ReadBufferOffset, ReadChunkSize);
         if (!readOk)
         {
             // New reading failed

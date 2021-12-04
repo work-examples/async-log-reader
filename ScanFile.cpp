@@ -24,7 +24,7 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
     const DWORD dwDesiredAccess = FILE_READ_DATA; // minimal required rights
     const DWORD dwShareMode = FILE_SHARE_READ; // allow parallel reading. And do not allow appending to log. Algorithm will not work correctly in this case.
     const DWORD dwCreationDisposition = OPEN_EXISTING;
-    const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN | (asyncMode ? FILE_FLAG_OVERLAPPED : 0); // read the comment below
+    const DWORD dwFlagsAndAttributes = 0 | (asyncMode ? FILE_FLAG_OVERLAPPED : 0); // read the comment below
 
     // FILE_FLAG_SEQUENTIAL_SCAN gives a cache speed optimization for pattern when file is read once from the beginning to the end
     // According to my tests FILE_FLAG_SEQUENTIAL_SCAN does no measurable impact but I would prefer to keep it here.
@@ -70,6 +70,7 @@ void CScanFile::Close()
     this->_operationInProgress = false;
 }
 
+__declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& readBytes)
 {
     if (this->_hFile == nullptr || buffer == nullptr)
@@ -92,6 +93,7 @@ bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& read
     return !!succeeded;
 }
 
+__declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
 {
     if (this->_hFile == nullptr || buffer == nullptr || this->_operationInProgress)
@@ -116,6 +118,7 @@ bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
     return true;
 }
 
+__declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::AsyncReadWait(size_t& readBytes)
 {
     if (!this->_operationInProgress)

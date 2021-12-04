@@ -47,7 +47,7 @@ public:
     }
 
 protected:
-#if 1
+#if 0
     CSyncLineReader  _lineReader;
 #else
     CAsyncLineReader _lineReader;

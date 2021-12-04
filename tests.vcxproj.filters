@@ -88,9 +88,6 @@
     <ClCompile Include="LineReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TestLineReader.cpp">
-      <Filter>Tests</Filter>
-    </ClCompile>
     <ClCompile Include="TestFnMatch.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
@@ -99,6 +96,12 @@
     </ClCompile>
     <ClCompile Include="TestHelpers.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestLineReaderAsync.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="TestLineReaderSync.cpp">
+      <Filter>Tests</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -11,9 +11,9 @@
 namespace
 {
 #if 0
-    using CLineReader = CSyncLineReader;
+#   define CLineReader CSyncLineReader
 #else
-    using CLineReader = CAsyncLineReader;
+#   define CLineReader CAsyncLineReader
 #endif
 
     const size_t MaxLogLineLength = 1024; // copy-pasted value from LineReader.cpp
