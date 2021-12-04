@@ -5,7 +5,7 @@ bool CLogReader::Open(const wchar_t* const filename)
 {
     this->Close();
 
-    const bool succeeded = this->_file.Open(filename);
+    const bool succeeded = this->_file.Open(filename, false);
     if (succeeded)
     {
         const std::function<CLineReader::ReadDataFunc> funcReadData =
