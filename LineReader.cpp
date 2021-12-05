@@ -5,7 +5,6 @@
 
 namespace
 {
-    const size_t MB = 1024 * 1024;
     const size_t MaxKnownNtfsClusterSize = 65536;
     const size_t MaxLogLineLength = 1024; // including ending LF/CRLF;
 
@@ -22,6 +21,8 @@ namespace
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 CSyncLineReader::CSyncLineReader()
@@ -95,7 +96,6 @@ std::optional<std::string_view> CSyncLineReader::GetNextLine()
         if (this->_bufferData.empty())
         {
             assert(readBytes == 0);
-            // Data source already pointed there is not data any more
             // The very last line without LF is not counted
             return {};
         }
@@ -127,11 +127,11 @@ std::optional<std::string_view> CSyncLineReader::GetNextLine()
         return {};
     }
 
-    const char* const lineStart = this->_bufferData.data();
+    const std::string_view result = this->_bufferData.substr(0, foundLineLength);
     this->_bufferData.remove_prefix(foundLineLength);
 
-    assert(foundLineLength > 0 && "result should contain LF char");
-    return std::string_view(lineStart, foundLineLength);
+    assert(foundLineLength > 0 && "result should contain at least LF char");
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -235,7 +235,6 @@ std::optional<std::string_view> CAsyncLineReader::GetNextLine()
         if (this->_bufferData.empty())
         {
             assert(readBytes == 0);
-            // Data source already pointed there is not data any more
             // The very last line without LF is not counted
             return {};
         }
@@ -267,9 +266,93 @@ std::optional<std::string_view> CAsyncLineReader::GetNextLine()
         return {};
     }
 
-    const char* const lineStart = this->_bufferData.data();
+    const std::string_view result = this->_bufferData.substr(0, foundLineLength);
     this->_bufferData.remove_prefix(foundLineLength);
 
-    assert(foundLineLength > 0 && "result should contain LF char");
-    return std::string_view(lineStart, foundLineLength);
+    assert(foundLineLength > 0 && "result should contain at least LF char");
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CMappingLineReader::Open(const wchar_t* const filename)
+{
+    if (filename == nullptr)
+    {
+        return false;
+    }
+    this->Close();
+
+    const bool bAsyncMode = false;
+    const bool succeeded = this->_file.Open(filename, bAsyncMode);
+    if (!succeeded)
+    {
+        return false;
+    }
+
+    const auto fileView = this->_file.MapToMemory();
+    if (!fileView)
+    {
+        this->_file.Close();
+        return false;
+    }
+
+    this->_bufferData = *fileView;
+    this->_mappedToMemory = true;
+    return true;
+}
+
+void CMappingLineReader::Close()
+{
+    this->_file.Close();
+    this->_mappedToMemory = false;
+}
+
+__declspec(noinline) // noinline is added to help CPU profiling in release version
+std::optional<std::string_view> CMappingLineReader::GetNextLine()
+{
+    if (!this->_mappedToMemory)
+    {
+        return {};
+    }
+
+    // Find EOL:
+    const size_t eolOffset = this->_bufferData.find('\n');
+
+    if (eolOffset == this->_bufferData.npos)
+    {
+        // EOL was not found. Make a choice between last line case and reading additional data from functor.
+
+        if (this->_bufferData.size() > MaxLogLineLength)
+        {
+            // Incomplete line is already too long
+            return {};
+        }
+
+        if (this->_bufferData.empty())
+        {
+            // The very last line without LF is not counted
+            return {};
+        }
+
+        const std::string_view result = this->_bufferData;
+        this->_bufferData = std::string_view();
+        return result;
+    }
+
+    const size_t foundLineLength = eolOffset + 1;
+
+    if (foundLineLength > MaxLogLineLength)
+    {
+        // Line is too long
+        return {};
+    }
+
+    const std::string_view result = this->_bufferData.substr(0, foundLineLength);
+    this->_bufferData.remove_prefix(foundLineLength);
+
+    assert(foundLineLength > 0 && "result should contain at least LF char");
+    return result;
 }

@@ -52,3 +52,21 @@ protected:
     CCharBuffer      _buffer2;
     std::string_view _bufferData; // filled part of the current buffer
 };
+
+//////////////////////////////////////////////////////////////////////////
+
+class CMappingLineReader
+{
+public:
+    bool Open(const wchar_t* const filename);
+    void Close();
+
+    // request next matching line; line may contain '\0' and may end with '\n'; return false on error or EOF
+    // returned line is never empty (it contains at least one '\n' or any other character).
+    std::optional<std::string_view> GetNextLine();
+
+protected:
+    CScanFile        _file;
+    bool             _mappedToMemory = false;
+    std::string_view _bufferData; // filled part of the current buffer
+};

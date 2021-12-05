@@ -10,7 +10,7 @@
 
 namespace
 {
-#   define CLineReader CAsyncLineReader
+#   define CLineReader CMappingLineReader
 
     const size_t MaxLogLineLength = 1024; // copy-pasted value from LineReader.cpp
 }

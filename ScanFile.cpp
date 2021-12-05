@@ -21,10 +21,11 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
 
     assert(this->_hEvent == nullptr);
 
-    const DWORD dwDesiredAccess = FILE_READ_DATA; // minimal required rights
+    const DWORD dwDesiredAccess = FILE_READ_DATA | FILE_READ_ATTRIBUTES; // minimal required rights
+    // FILE_READ_ATTRIBUTES is needed to get file size for mapping file to memory
     const DWORD dwShareMode = FILE_SHARE_READ; // allow parallel reading. And do not allow appending to log. Algorithm will not work correctly in this case.
     const DWORD dwCreationDisposition = OPEN_EXISTING;
-    const DWORD dwFlagsAndAttributes = 0 | (asyncMode ? FILE_FLAG_OVERLAPPED : 0); // read the comment below
+    const DWORD dwFlagsAndAttributes = FILE_FLAG_SEQUENTIAL_SCAN | (asyncMode ? FILE_FLAG_OVERLAPPED : 0); // read the comment below
 
     // FILE_FLAG_SEQUENTIAL_SCAN gives a cache speed optimization for pattern when file is read once from the beginning to the end
     // According to my tests FILE_FLAG_SEQUENTIAL_SCAN does no measurable impact but I would prefer to keep it here.
@@ -55,6 +56,18 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
 
 void CScanFile::Close()
 {
+    if (this->_pViewOfFile != nullptr)
+    {
+        UnmapViewOfFile(this->_pViewOfFile);
+        this->_pViewOfFile = nullptr;
+    }
+
+    if (this->_hFileMapping != nullptr)
+    {
+        CloseHandle(this->_hFileMapping);
+        this->_hFileMapping = nullptr;
+    }
+
     if (this->_hFile != nullptr)
     {
         CloseHandle(this->_hFile);
@@ -68,6 +81,52 @@ void CScanFile::Close()
     }
 
     this->_operationInProgress = false;
+}
+
+std::optional<std::string_view> CScanFile::MapToMemory()
+{
+    if (this->_hFile == nullptr || this->_hFileMapping != nullptr)
+    {
+        return {};
+    }
+    assert(this->_pViewOfFile == nullptr);
+
+    LARGE_INTEGER fileSize = {};
+    const bool gotSizeOk = GetFileSizeEx(this->_hFile, &fileSize);
+    if (!gotSizeOk)
+    {
+        return {};
+    }
+
+    if (fileSize.QuadPart == 0)
+    {
+        // MSDN: An attempt to map a file with a length of 0 (zero) fails with an error code of ERROR_FILE_INVALID.
+        // Applications should test for files with a length of 0 (zero) and reject those files.
+        return std::string_view();
+    }
+
+    const size_t fileSizeAsSizeT = static_cast<size_t>(fileSize.QuadPart);
+    if (fileSize.QuadPart > SIZE_MAX)
+    {
+        // 32 bit application can have problems with mapping of big files into address space
+        return {};
+    }
+
+    this->_hFileMapping = CreateFileMappingW(this->_hFile, nullptr, PAGE_READONLY, fileSize.HighPart, fileSize.LowPart, nullptr);
+    if (this->_hFileMapping == nullptr)
+    {
+        return {};
+    }
+
+    this->_pViewOfFile = MapViewOfFile(this->_hFileMapping, FILE_MAP_READ, 0, 0, fileSizeAsSizeT);
+    if (this->_pViewOfFile == nullptr)
+    {
+        CloseHandle(this->_hFileMapping);
+        this->_hFileMapping = nullptr;
+        return {};
+    }
+
+    return std::string_view(static_cast<const char*>(this->_pViewOfFile), fileSizeAsSizeT);
 }
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
@@ -87,7 +146,7 @@ bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& read
     const DWORD usedBufferLength = static_cast<DWORD>(min(bufferLength, MAXDWORD));
     DWORD numberOfBytesRead = 0;
 
-    const BOOL succeeded = ReadFile(this->_hFile, buffer, usedBufferLength, &numberOfBytesRead, nullptr);
+    const bool succeeded = !!ReadFile(this->_hFile, buffer, usedBufferLength, &numberOfBytesRead, nullptr);
     readBytes = numberOfBytesRead;
 
     return !!succeeded;
@@ -107,7 +166,7 @@ bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
     this->_overlapped.Offset = this->_fileOffset.LowPart;
     this->_overlapped.OffsetHigh = this->_fileOffset.HighPart;
 
-    const BOOL readOk = ReadFile(this->_hFile, buffer, usedBufferLength, nullptr, &this->_overlapped);
+    const bool readOk = !!ReadFile(this->_hFile, buffer, usedBufferLength, nullptr, &this->_overlapped);
     if (!readOk && GetLastError() != ERROR_IO_PENDING)
     {
         return false;
@@ -130,7 +189,7 @@ bool CScanFile::AsyncReadWait(size_t& readBytes)
 
     DWORD numberOfBytesRead = 0;
 
-    const BOOL overlappedOk = GetOverlappedResult(this->_hFile, &this->_overlapped, &numberOfBytesRead, TRUE);
+    const bool overlappedOk = !!GetOverlappedResult(this->_hFile, &this->_overlapped, &numberOfBytesRead, TRUE);
     if (!overlappedOk)
     {
         this->_operationInProgress = false; // I'm not sure this is correct

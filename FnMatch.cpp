@@ -98,7 +98,7 @@ bool CFnMatch::Match(const std::string_view text, const std::string_view pattern
 #else
 // Original implementation
 
-//__declspec(noinline) // noinline is added to help CPU profiling in release version
+__declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CFnMatch::Match(const std::string_view text, const std::string_view pattern)
 {
     size_t patternPos = 0;

@@ -4,8 +4,8 @@
 #include "FnMatch.h"
 #include "LineReader.h"
 
-#include <optional>
-#include <string_view>
+#include <optional> // this is STL, but it does not need exceptions
+#include <string_view> // this is STL, but it does not need exceptions
 
 #include <wchar.h> // for size_t, wchar_t
 
@@ -47,11 +47,15 @@ public:
     }
 
 protected:
+#if 1
 #if 0
-    CSyncLineReader  _lineReader;
+    CSyncLineReader    _lineReader;
 #else
-    CAsyncLineReader _lineReader;
+    CAsyncLineReader   _lineReader;
 #endif
-    CCharBuffer      _pattern;
-    CFnMatch         _lineMatcher;
+#else
+    CMappingLineReader _lineReader;
+#endif
+    CCharBuffer        _pattern;
+    CFnMatch           _lineMatcher;
 };
