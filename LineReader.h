@@ -70,3 +70,29 @@ protected:
     bool             _mappedToMemory = false;
     std::string_view _bufferData; // filled part of the current buffer
 };
+
+//////////////////////////////////////////////////////////////////////////
+
+class CLockFreeLineReader
+{
+public:
+    CLockFreeLineReader();
+
+    bool Open(const wchar_t* const filename);
+    void Close();
+
+    // request next matching line; line may contain '\0' and may end with '\n'; return false on error or EOF
+    // returned line is never empty (it contains at least one '\n' or any other character).
+    std::optional<std::string_view> GetNextLine();
+
+protected:
+    CScanFile        _file;
+    // Buffer structure: [    rest_of_previousline|data_read_from_file  ]
+    //                   [ len = MaxLogLineLength | len = ReadChunkSize ]
+    bool             _firstBufferIsActive = true;
+    CCharBuffer      _buffer1;
+    CCharBuffer      _buffer2;
+    std::string_view _bufferData; // filled part of the current buffer
+};
+
+//////////////////////////////////////////////////////////////////////////

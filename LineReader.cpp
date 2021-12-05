@@ -356,3 +356,155 @@ std::optional<std::string_view> CMappingLineReader::GetNextLine()
     assert(foundLineLength > 0 && "result should contain at least LF char");
     return result;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CLockFreeLineReader::CLockFreeLineReader()
+{
+    this->_buffer1.Allocate(ReadBufferSize);
+    if (this->_buffer1.ptr != nullptr)
+    {
+        this->_buffer2.Allocate(ReadBufferSize);
+    }
+}
+
+bool CLockFreeLineReader::Open(const wchar_t* const filename)
+{
+    if (this->_buffer1.ptr == nullptr || filename == nullptr)
+    {
+        return false;
+    }
+    assert(this->_buffer2.ptr != nullptr);
+    this->Close();
+
+    const bool bAsyncMode = false;
+    const bool succeeded = this->_file.Open(filename, bAsyncMode);
+    if (!succeeded)
+    {
+        return false;
+    }
+
+    this->_bufferData = std::string_view(this->_buffer1.ptr, 0);
+    this->_firstBufferIsActive = true;
+
+    const bool initLockFreeOk = this->_file.LockFreecInit();
+    if (!initLockFreeOk)
+    {
+        this->_file.Close();
+        return false;
+    }
+
+    const bool readStartOk = this->_file.LockFreeReadStart(this->_buffer2.ptr + ReadBufferOffset, ReadChunkSize);
+    if (!readStartOk)
+    {
+        this->_file.LockFreecClean();
+        this->_file.Close();
+        return false;
+    }
+
+    return true;
+}
+
+void CLockFreeLineReader::Close()
+{
+    this->_file.LockFreecClean();
+    this->_file.Close();
+}
+
+__declspec(noinline) // noinline is added to help CPU profiling in release version
+std::optional<std::string_view> CLockFreeLineReader::GetNextLine()
+{
+    if (this->_buffer1.ptr == nullptr)
+    {
+        return {};
+    }
+    assert(this->_buffer2.ptr != nullptr);
+
+    // Find EOL:
+    size_t eolOffset = this->_bufferData.find('\n');
+
+    if (eolOffset == this->_bufferData.npos)
+    {
+        // EOL was not found. Make a choice between last line case and reading additional data from functor.
+
+        if (this->_bufferData.size() > MaxLogLineLength)
+        {
+            // Incomplete line is already too long
+            return {};
+        }
+
+        CCharBuffer& currentBuffer = this->_firstBufferIsActive ? this->_buffer1 : this->_buffer2;
+        CCharBuffer& nextBuffer = this->_firstBufferIsActive ? this->_buffer2 : this->_buffer1;
+
+        const size_t prefixLength = this->_bufferData.size();
+        assert(prefixLength <= MaxLogLineLength && "the rest of buffer is too big for moving to beginning");
+        char* const newDataBufferPtr = nextBuffer.ptr + ReadBufferOffset - prefixLength;
+
+        // don't need memmove since the whole high level algorithm will fail if buffers overlap
+        memcpy(newDataBufferPtr, this->_bufferData.data(), prefixLength);
+
+        size_t readBytes = 0;
+        const bool readCompleteOk = this->_file.LockFreeReadWait(readBytes);
+        if (!readCompleteOk)
+        {
+            // Previous reading failed
+            return {};
+        }
+
+        // Read missing data:
+        const bool readOk = this->_file.LockFreeReadStart(currentBuffer.ptr + ReadBufferOffset, ReadChunkSize);
+        if (!readOk)
+        {
+            // New reading failed
+            return {};
+        }
+
+        this->_bufferData = { newDataBufferPtr, prefixLength + readBytes };
+        this->_firstBufferIsActive = !this->_firstBufferIsActive;
+
+        if (this->_bufferData.empty())
+        {
+            assert(readBytes == 0);
+            // The very last line without LF is not counted
+            return {};
+        }
+
+        // Search EOL again after reading additional data:
+        // I expect we read either ReadChunkSize bytes or we read the data chunk in file.
+        eolOffset = this->_bufferData.find('\n', prefixLength);
+        if (eolOffset == this->_bufferData.npos)
+        {
+            if (this->_bufferData.size() > MaxLogLineLength)
+            {
+                // Incomplete line is too long
+                return {};
+            }
+
+            // Found last line after reading missing data
+            const std::string_view result = this->_bufferData;
+            this->_bufferData = { this->_buffer1.ptr, 0 };
+            assert(!result.empty() && "last line without LF should be not empty");
+            return result;
+        }
+    }
+
+    const size_t foundLineLength = eolOffset + 1;
+
+    if (foundLineLength > MaxLogLineLength)
+    {
+        // Line is too long
+        return {};
+    }
+
+    const std::string_view result = this->_bufferData.substr(0, foundLineLength);
+    this->_bufferData.remove_prefix(foundLineLength);
+
+    assert(foundLineLength > 0 && "result should contain at least LF char");
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

@@ -18,7 +18,6 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
     {
         return false;
     }
-
     assert(this->_hEvent == nullptr);
 
     const DWORD dwDesiredAccess = FILE_READ_DATA | FILE_READ_ATTRIBUTES; // minimal required rights
@@ -38,6 +37,7 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
         return false;
     }
 
+    // Init data for async IO:
     this->_hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
     if (this->_hEvent == nullptr)
@@ -56,6 +56,8 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
 
 void CScanFile::Close()
 {
+    this->LockFreecClean();
+
     if (this->_pViewOfFile != nullptr)
     {
         UnmapViewOfFile(this->_pViewOfFile);
@@ -129,6 +131,8 @@ std::optional<std::string_view> CScanFile::MapToMemory()
     return std::string_view(static_cast<const char*>(this->_pViewOfFile), fileSizeAsSizeT);
 }
 
+//////////////////////////////////////////////////////////////////////////
+
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& readBytes)
 {
@@ -151,6 +155,8 @@ bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& read
 
     return !!succeeded;
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
@@ -210,3 +216,132 @@ bool CScanFile::AsyncReadWait(size_t& readBytes)
 
     return true;
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+bool CScanFile::LockFreecInit()
+{
+    if (this->_pThread != nullptr)
+    {
+        return false;
+    }
+
+    this->_threadFinishSignal = false;
+    this->_threadOperationReadStartSignal = false;
+    this->_threadOperationReadCompletedSignal = false;
+    {
+        std::lock_guard<std::mutex> lock(this->_protectThreadData);
+        this->_pThreadReadBuffer = nullptr;
+        this->_threadReadBufferSize = 0;
+        this->_threadActuallyReadBytes = 0;
+        this->_threadReadSucceeded = false;
+    }
+
+    this->_pThread = std::make_unique<std::thread>(&CScanFile::LockFreeThread, this);
+
+    return true;
+}
+
+void CScanFile::LockFreecClean()
+{
+    if (this->_pThread != nullptr)
+    {
+        this->_threadFinishSignal = true;
+        this->_pThread->join();
+        this->_pThread.reset();
+    }
+}
+
+__declspec(noinline) // noinline is added to help CPU profiling in release version
+bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
+{
+    if (this->_pThread == nullptr || this->_threadOperationInProgress)
+    {
+        return false;
+    }
+
+    this->_threadOperationInProgress = true;
+
+    this->_threadOperationReadCompletedSignal = false;
+
+    {
+        std::lock_guard<std::mutex> lock(this->_protectThreadData);
+        this->_pThreadReadBuffer = buffer;
+        this->_threadReadBufferSize = bufferLength;
+        this->_threadActuallyReadBytes = 0;
+        this->_threadReadSucceeded = false;
+    }
+
+    this->_threadOperationReadStartSignal = true;
+
+    return true;
+}
+
+__declspec(noinline) // noinline is added to help CPU profiling in release version
+bool CScanFile::LockFreeReadWait(size_t& readBytes)
+{
+    if (this->_pThread == nullptr || !this->_threadOperationInProgress)
+    {
+        return false;
+    }
+
+    this->_threadOperationInProgress = false;
+
+    while (!this->_threadOperationReadCompletedSignal)
+    {
+        // nothing
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(this->_protectThreadData);
+        readBytes = this->_threadActuallyReadBytes;
+        if (!this->_threadReadSucceeded)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void CScanFile::LockFreeThread()
+{
+    while (true)
+    {
+        if (this->_threadFinishSignal)
+        {
+            // thread exit signal is caught
+            break;
+        }
+
+        if (!this->_threadOperationReadStartSignal)
+        {
+            // nothing to do
+            continue;
+        }
+
+        this->_threadOperationReadStartSignal = false;
+
+        char* buffer = nullptr;
+        size_t bufferSize = 0;
+
+        {
+            std::lock_guard<std::mutex> lock(this->_protectThreadData);
+            buffer = this->_pThreadReadBuffer;
+            bufferSize = this->_threadReadBufferSize;
+        }
+
+        size_t readBytes = 0;
+        const bool readOk = this->Read(buffer, bufferSize, readBytes);
+
+        {
+            std::lock_guard<std::mutex> lock(this->_protectThreadData);
+            this->_threadActuallyReadBytes = readBytes;
+            this->_threadReadSucceeded = readOk;
+        }
+
+        this->_threadOperationReadCompletedSignal = true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
