@@ -46,6 +46,7 @@
     <ClCompile Include="TestFnMatch.cpp" />
     <ClCompile Include="TestHelpers.cpp" />
     <ClCompile Include="TestLineReaderAsync.cpp" />
+    <ClCompile Include="TestLineReaderLockFree.cpp" />
     <ClCompile Include="TestLineReaderMapping.cpp" />
     <ClCompile Include="TestLineReaderSync.cpp" />
   </ItemGroup>

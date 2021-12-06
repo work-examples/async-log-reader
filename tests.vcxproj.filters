@@ -106,5 +106,8 @@
     <ClCompile Include="TestLineReaderMapping.cpp">
       <Filter>Tests</Filter>
     </ClCompile>
+    <ClCompile Include="TestLineReaderLockFree.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

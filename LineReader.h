@@ -9,6 +9,9 @@
 #include <wchar.h> // for size_t
 
 
+//////////////////////////////////////////////////////////////////////////
+
+// Implementation with 2 buffers and async calls to ReadFile()
 class CSyncLineReader
 {
 public:
@@ -31,6 +34,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
+// Implementation with usual sync calls to ReadFile()
 class CAsyncLineReader
 {
 public:
@@ -55,6 +59,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
+// Implementation with file mapped to a big single readonly memory block
 class CMappingLineReader
 {
 public:
@@ -73,6 +78,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
+// Implementation with 2 buffers and separate thread for sync calls to ReadFile(); synchronization is done without Windows EVENTs (lock free)
 class CLockFreeLineReader
 {
 public:
