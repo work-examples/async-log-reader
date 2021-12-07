@@ -3,8 +3,23 @@
 #include <assert.h>
 
 #include <algorithm>
+#include <atomic>       // for std::atomic_thread_fence
 
 #include <windows.h>
+
+namespace
+{
+    // This is a dirty hack for speedup inter-thread communication on hyperthreading CPUs
+    // We could choose any other paid of logical CPUs based on the same physical CPU and sharing the same cache
+    // I'm sure it will give no effect in the current task because we are switching too rarely between threads.
+    const int PreferedCpuForMainThread = 0;
+    const int PreferedCpuForWorkerThread = PreferedCpuForMainThread + 1;
+    static_assert(PreferedCpuForMainThread % 2 == 0);
+    const DWORD ThreadPriority = THREAD_PRIORITY_TIME_CRITICAL;
+#   define ENABLE_THREAD_PREFERRED_AFFINITY 0
+#   define ENABLE_THREAD_FIXED_AFFINITY     0
+#   define ENABLE_THREAD_PRIORITY           0
+}
 
 
 CScanFile::~CScanFile()
@@ -18,7 +33,7 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
     {
         return false;
     }
-    assert(this->_hEvent == nullptr);
+    assert(this->_hAsyncEvent == nullptr);
 
     const DWORD dwDesiredAccess = FILE_READ_DATA | FILE_READ_ATTRIBUTES; // minimal required rights
     // FILE_READ_ATTRIBUTES is needed to get file size for mapping file to memory
@@ -38,18 +53,18 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
     }
 
     // Init data for async IO:
-    this->_hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    this->_hAsyncEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
-    if (this->_hEvent == nullptr)
+    if (this->_hAsyncEvent == nullptr)
     {
         CloseHandle(this->_hFile);
         this->_hFile = nullptr;
         return false;
     }
 
-    this->_overlapped.hEvent = this->_hEvent;
-    this->_fileOffset.QuadPart = 0;
-    this->_operationInProgress = false;
+    this->_asyncOverlapped.hEvent = this->_hAsyncEvent;
+    this->_asyncFileOffset.QuadPart = 0;
+    this->_asyncOperationInProgress = false;
 
     return true;
 }
@@ -76,14 +91,18 @@ void CScanFile::Close()
         this->_hFile = nullptr;
     }
 
-    if (this->_hEvent != nullptr)
+    if (this->_hAsyncEvent != nullptr)
     {
-        CloseHandle(this->_hEvent);
-        this->_hEvent = nullptr;
+        CloseHandle(this->_hAsyncEvent);
+        this->_hAsyncEvent = nullptr;
     }
 
-    this->_operationInProgress = false;
+    this->_asyncOperationInProgress = false;
 }
+
+//////////////////////////////////////////////////////////////////////////
+/// Implementation of mapping file to memory
+//////////////////////////////////////////////////////////////////////////
 
 std::optional<std::string_view> CScanFile::MapToMemory()
 {
@@ -132,6 +151,8 @@ std::optional<std::string_view> CScanFile::MapToMemory()
 }
 
 //////////////////////////////////////////////////////////////////////////
+/// Implementation of synchronous file API
+//////////////////////////////////////////////////////////////////////////
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& readBytes)
@@ -157,28 +178,30 @@ bool CScanFile::Read(char* const buffer, const size_t bufferLength, size_t& read
 }
 
 //////////////////////////////////////////////////////////////////////////
+/// Implementation of Asynchronous file API
+//////////////////////////////////////////////////////////////////////////
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
 {
-    if (this->_hFile == nullptr || buffer == nullptr || this->_operationInProgress)
+    if (this->_hFile == nullptr || buffer == nullptr || this->_asyncOperationInProgress)
     {
         return false;
     }
-    assert(this->_hEvent != nullptr);
+    assert(this->_hAsyncEvent != nullptr);
 
     const DWORD usedBufferLength = static_cast<DWORD>(min(bufferLength, MAXDWORD));
 
-    this->_overlapped.Offset = this->_fileOffset.LowPart;
-    this->_overlapped.OffsetHigh = this->_fileOffset.HighPart;
+    this->_asyncOverlapped.Offset = this->_asyncFileOffset.LowPart;
+    this->_asyncOverlapped.OffsetHigh = this->_asyncFileOffset.HighPart;
 
-    const bool readOk = !!ReadFile(this->_hFile, buffer, usedBufferLength, nullptr, &this->_overlapped);
+    const bool readOk = !!ReadFile(this->_hFile, buffer, usedBufferLength, nullptr, &this->_asyncOverlapped);
     if (!readOk && GetLastError() != ERROR_IO_PENDING)
     {
         return false;
     }
 
-    this->_operationInProgress = true;
+    this->_asyncOperationInProgress = true;
 
     return true;
 }
@@ -186,19 +209,19 @@ bool CScanFile::AsyncReadStart(char* const buffer, const size_t bufferLength)
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::AsyncReadWait(size_t& readBytes)
 {
-    if (!this->_operationInProgress)
+    if (!this->_asyncOperationInProgress)
     {
         return false;
     }
     assert(this->_hFile != nullptr);
-    assert(this->_hEvent != nullptr);
+    assert(this->_hAsyncEvent != nullptr);
 
     DWORD numberOfBytesRead = 0;
 
-    const bool overlappedOk = !!GetOverlappedResult(this->_hFile, &this->_overlapped, &numberOfBytesRead, TRUE);
+    const bool overlappedOk = !!GetOverlappedResult(this->_hFile, &this->_asyncOverlapped, &numberOfBytesRead, TRUE);
     if (!overlappedOk)
     {
-        this->_operationInProgress = false; // I'm not sure this is correct
+        this->_asyncOperationInProgress = false; // I'm not sure this is correct
         if (GetLastError() == ERROR_HANDLE_EOF)
         {
             assert(numberOfBytesRead == 0);
@@ -209,8 +232,8 @@ bool CScanFile::AsyncReadWait(size_t& readBytes)
         return false;
     }
 
-    this->_fileOffset.QuadPart += numberOfBytesRead;
-    this->_operationInProgress = false;
+    this->_asyncFileOffset.QuadPart += numberOfBytesRead;
+    this->_asyncOperationInProgress = false;
 
     readBytes = numberOfBytesRead;
 
@@ -218,61 +241,94 @@ bool CScanFile::AsyncReadWait(size_t& readBytes)
 }
 
 //////////////////////////////////////////////////////////////////////////
+/// Implementation of file API executed in a separate thread with the help of spinlocks
+//////////////////////////////////////////////////////////////////////////
 
 bool CScanFile::LockFreecInit()
 {
-    if (this->_pThread != nullptr)
+    if (this->_hThread != nullptr)
     {
         return false;
     }
 
-    this->_threadFinishSignal = false;
-    this->_threadOperationReadStartSignal = false;
-    this->_threadOperationReadCompletedSignal = false;
-    {
-        std::lock_guard<std::mutex> lock(this->_protectThreadData);
-        this->_pThreadReadBuffer = nullptr;
-        this->_threadReadBufferSize = 0;
-        this->_threadActuallyReadBytes = 0;
-        this->_threadReadSucceeded = false;
-    }
+    this->_threadFinishSpinlock = false;
+    this->_threadOperationReadStartSpinlock = false;
+    this->_threadOperationReadCompletedSpinlock = false;
+    this->_pThreadReadBuffer = nullptr;
+    this->_threadReadBufferSize = 0;
+    this->_threadActuallyReadBytes = 0;
+    this->_threadReadSucceeded = false;
+    std::atomic_thread_fence(std::memory_order_release);
 
-    this->_pThread = std::make_unique<std::thread>(&CScanFile::LockFreeThread, this);
+    // This is a dirty hack for speedup inter-thread communication on hyperthreading CPUs
+#if ENABLE_THREAD_PREFERRED_AFFINITY
+    SetThreadIdealProcessor(GetCurrentThread(), PreferedCpuForMainThread);
+#endif
+#if ENABLE_THREAD_FIXED_AFFINITY
+    SetThreadAffinityMask(GetCurrentThread(), 1 << PreferedCpuForMainThread);
+#endif
+#if ENABLE_THREAD_PRIORITY
+    SetThreadPriority(GetCurrentThread(), ThreadPriority);
+#endif
+
+    using ThreadProcType = unsigned __stdcall(void*);
+    ThreadProcType* const threadProc = [](void* p) -> unsigned
+    {
+        // This is a dirty hack for speedup inter-thread communication on hyperthreading CPUs
+#if ENABLE_THREAD_PREFERRED_AFFINITY
+        SetThreadIdealProcessor(GetCurrentThread(), PreferedCpuForWorkerThread);
+#endif
+#if ENABLE_THREAD_FIXED_AFFINITY
+        SetThreadAffinityMask(GetCurrentThread(), 1 << PreferedCpuForWorkerThread);
+#endif
+#if ENABLE_THREAD_PRIORITY
+        SetThreadPriority(GetCurrentThread(), ThreadPriority);
+#endif
+
+        CScanFile* const that = static_cast<CScanFile*>(p);
+        that->LockFreeThreadProc();
+        _endthreadex(0);
+        return 0;
+    };
+
+    unsigned threadID = 0;
+    this->_hThread = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, threadProc, this, 0, &threadID));
+    if (this->_hThread == nullptr)
+    {
+        return false;
+    }
 
     return true;
 }
 
 void CScanFile::LockFreecClean()
 {
-    if (this->_pThread != nullptr)
+    if (this->_hThread != nullptr)
     {
-        this->_threadFinishSignal = true;
-        this->_pThread->join();
-        this->_pThread.reset();
+        this->_threadFinishSpinlock = true;
+        WaitForSingleObject(this->_hThread, INFINITE); // ignore return value in this case
+        this->_hThread = nullptr;
     }
 }
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
 {
-    if (this->_pThread == nullptr || this->_threadOperationInProgress)
+    if (this->_hThread == nullptr || this->_threadOperationInProgress)
     {
         return false;
     }
 
     this->_threadOperationInProgress = true;
+    this->_threadOperationReadCompletedSpinlock = false;
+    this->_pThreadReadBuffer = buffer;
+    this->_threadReadBufferSize = bufferLength;
+    this->_threadActuallyReadBytes = 0;
+    this->_threadReadSucceeded = false;
+    std::atomic_thread_fence(std::memory_order_release);
 
-    this->_threadOperationReadCompletedSignal = false;
-
-    {
-        std::lock_guard<std::mutex> lock(this->_protectThreadData);
-        this->_pThreadReadBuffer = buffer;
-        this->_threadReadBufferSize = bufferLength;
-        this->_threadActuallyReadBytes = 0;
-        this->_threadReadSucceeded = false;
-    }
-
-    this->_threadOperationReadStartSignal = true;
+    this->_threadOperationReadStartSpinlock = true;
+    std::atomic_thread_fence(std::memory_order_release);
 
     return true;
 }
@@ -280,67 +336,60 @@ bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
 __declspec(noinline) // noinline is added to help CPU profiling in release version
 bool CScanFile::LockFreeReadWait(size_t& readBytes)
 {
-    if (this->_pThread == nullptr || !this->_threadOperationInProgress)
+    if (this->_hThread == nullptr || !this->_threadOperationInProgress)
     {
         return false;
     }
 
     this->_threadOperationInProgress = false;
+    std::atomic_thread_fence(std::memory_order_release);
 
-    while (!this->_threadOperationReadCompletedSignal)
+    std::atomic_thread_fence(std::memory_order_acquire);
+    while (!this->_threadOperationReadCompletedSpinlock)
     {
         // nothing
+        std::atomic_thread_fence(std::memory_order_acquire);
     }
 
+    std::atomic_thread_fence(std::memory_order_acquire);
+    readBytes = this->_threadActuallyReadBytes;
+    if (!this->_threadReadSucceeded)
     {
-        std::lock_guard<std::mutex> lock(this->_protectThreadData);
-        readBytes = this->_threadActuallyReadBytes;
-        if (!this->_threadReadSucceeded)
-        {
-            return false;
-        }
+        return false;
     }
 
     return true;
 }
 
-void CScanFile::LockFreeThread()
+void CScanFile::LockFreeThreadProc()
 {
     while (true)
     {
-        if (this->_threadFinishSignal)
+        std::atomic_thread_fence(std::memory_order_acquire);
+        if (this->_threadFinishSpinlock)
         {
             // thread exit signal is caught
             break;
         }
 
-        if (!this->_threadOperationReadStartSignal)
+        if (!this->_threadOperationReadStartSpinlock)
         {
             // nothing to do
             continue;
         }
 
-        this->_threadOperationReadStartSignal = false;
-
-        char* buffer = nullptr;
-        size_t bufferSize = 0;
-
-        {
-            std::lock_guard<std::mutex> lock(this->_protectThreadData);
-            buffer = this->_pThreadReadBuffer;
-            bufferSize = this->_threadReadBufferSize;
-        }
+        std::atomic_thread_fence(std::memory_order_acquire);
 
         size_t readBytes = 0;
-        const bool readOk = this->Read(buffer, bufferSize, readBytes);
+        const bool readOk = this->Read(this->_pThreadReadBuffer, this->_threadReadBufferSize, readBytes);
 
-        {
-            std::lock_guard<std::mutex> lock(this->_protectThreadData);
-            this->_threadActuallyReadBytes = readBytes;
-            this->_threadReadSucceeded = readOk;
-        }
+        this->_threadOperationReadStartSpinlock = false;
+        this->_threadActuallyReadBytes = readBytes;
+        this->_threadReadSucceeded = readOk;
+        std::atomic_thread_fence(std::memory_order_release);
 
-        this->_threadOperationReadCompletedSignal = true;
+        this->_threadOperationReadCompletedSpinlock = true;
+        std::atomic_thread_fence(std::memory_order_release);
     }
 }
 

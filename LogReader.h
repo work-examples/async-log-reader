@@ -48,7 +48,7 @@ public:
 
 protected:
 #if 0
-#if 0
+#if 1
     CSyncLineReader    _lineReader;
 #else
     CMappingLineReader _lineReader;

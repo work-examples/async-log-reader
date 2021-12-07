@@ -1,10 +1,10 @@
 #pragma once
 
-#include <atomic> // this is STL, but it does not need exceptions
-#include <mutex> // this is STL, but it does not need exceptions
-#include <optional> // this is STL, but it does not need exceptions
+#include <atomic>      // this is STL, but it does not need exceptions
+#include <mutex>       // this is STL, but it does not need exceptions
+#include <new> // for std::hardware_constructive_interference_size
+#include <optional>    // this is STL, but it does not need exceptions
 #include <string_view> // this is STL, but it does not need exceptions
-#include <thread> // this is STL, but it does not need exceptions
 
 #include <wchar.h> // for size_t, wchar_t
 
@@ -33,9 +33,7 @@ public:
     void LockFreecClean();
     bool LockFreeReadStart(char* const buffer, const size_t bufferLength);
     bool LockFreeReadWait(size_t& readBytes);
-
-protected:
-    void LockFreeThread();
+    void LockFreeThreadProc();
 
 protected:
     HANDLE        _hFile = nullptr;
@@ -45,23 +43,21 @@ protected:
     void*         _pViewOfFile = nullptr;
 
     // For async IO:
-    HANDLE        _hEvent = nullptr;
-    LARGE_INTEGER _fileOffset = {};
-    OVERLAPPED    _overlapped = {};
-    bool          _operationInProgress = false;
+    HANDLE        _hAsyncEvent = nullptr;
+    LARGE_INTEGER _asyncFileOffset = {};
+    OVERLAPPED    _asyncOverlapped = {};
+    bool          _asyncOperationInProgress = false;
 
     // Separate thread + Lock free:
-    std::unique_ptr<std::thread> _pThread = nullptr;
-    bool          _threadOperationInProgress = false; // for protection against wrong API usage
-    // Spinlock variabled:
-    // We could use kernel-mode events instead of spinlocks, it will save CPU, but will loose time during synchronization (switch to kernel).
-    std::atomic<bool> _threadFinishSignal = ATOMIC_VAR_INIT(false);
-    std::atomic<bool> _threadOperationReadStartSignal = ATOMIC_VAR_INIT(false);
-    std::atomic<bool> _threadOperationReadCompletedSignal = ATOMIC_VAR_INIT(false);
-    // We do not actually need std::mutex here. We could use just memory fence instead.
-    // But current solution would be easier for code review and it will be more error-safe when using std::mutex.
-    // It will never wait in kernel mode since we will try to lock mutex only when it is guaranteed to be free.
-    std::mutex    _protectThreadData; // this is CRITICAL_SECTION in Windows to protect and sync the data below:
+    HANDLE        _hThread = nullptr;
+    bool          _threadOperationInProgress = false; // for protection against wrong API usage, not for use in a worker thread, no memory protection
+    // Spin lock variables:
+    // We could use kernel-mode events instead of spin locks, it will save CPU, but will loose time during synchronization (switch to kernel).
+    alignas(std::hardware_constructive_interference_size) // small speedup to get a bunch of variables into single cache line
+    bool          _threadFinishSpinlock = false;
+    bool          _threadOperationReadStartSpinlock = false;
+    bool          _threadOperationReadCompletedSpinlock = false;
+    // other data protected by spin locks:
     char*         _pThreadReadBuffer = nullptr;
     size_t        _threadReadBufferSize = 0;
     size_t        _threadActuallyReadBytes = 0;
