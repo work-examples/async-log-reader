@@ -292,7 +292,7 @@ bool CScanFile::LockFreecInit()
     };
 
     unsigned threadID = 0;
-    this->_hThread = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, threadProc, this, 0, &threadID));
+    this->_hThread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, threadProc, this, 0, &threadID));
     if (this->_hThread == nullptr)
     {
         return false;
