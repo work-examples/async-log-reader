@@ -4,6 +4,21 @@ name: Build MSVC project
 on: [ push, pull_request ] # yamllint disable-line rule:truthy
 
 jobs:
+  check-formatting:
+    name: Check Code Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check Markdown syntax (docker)
+        shell: sh
+        run: make -- check-md
+
+      - name: Check YAML syntax (docker)
+        shell: sh
+        run: make -- check-yaml
+
   build:
     name: Visual Studio 2019
     runs-on: windows-2019
