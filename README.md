@@ -20,12 +20,12 @@ C++ exceptions are not used (forbidden).
 
 Detailed task description is provided in a separate document:
 
-- [task-description.md](task-description.md)
+- [task-description.md](docs/task-description.md)
 
 ## Task Implementation Remarks
 
 Original implementation remarks letter in Russian is provided here:
 
-- [solution-notes-letter.ru.md](solution-notes-letter.ru.md)
+- [solution-notes-letter.ru.md](docs/solution-notes-letter.ru.md)
 
 ---
