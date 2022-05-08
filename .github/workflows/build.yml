@@ -1,7 +1,7 @@
 ---
 name: Build MSVC project
 
-on: [ push, pull_request ]
+on: [ push, pull_request ] # yamllint disable-line rule:truthy
 
 jobs:
   build:
@@ -32,9 +32,12 @@ jobs:
           msbuild-architecture: ${{ matrix.config.platform }}
 
       - name: Build MSVC project - ${{ matrix.config.config }} - ${{ matrix.config.platform }}
-        shell: cmd
+        env:
+          CONFIG: ${{ matrix.config.config }}
+          PLATFORM: ${{ matrix.config.platform }}
+        shell: sh
         run: |
-          MSBuild.exe ./LogReader.sln "/property:Configuration=${{ matrix.config.config }}" "/p:Platform=${{ matrix.config.platform }}"
+          MSBuild.exe ./LogReader.sln "/property:Configuration=$CONFIG" "/property:Platform=$PLATFORM"
 
       - name: Run Unit Tests - ${{ matrix.config.config }} - ${{ matrix.config.platform }}
         shell: sh
@@ -48,9 +51,11 @@ jobs:
           cp -- ./${{ matrix.config.output_dir }}/LogReader.exe "$RUNNER_TEMP/instdir"
 
       - name: Pack
+        env:
+          ARCHIVE_FILE: ${{ runner.temp }}/logreader-${{ matrix.config.config }}-${{ matrix.config.platform }}.7z
         working-directory: ${{ runner.temp }}/instdir
         shell: sh
-        run: cmake -E tar cfv "$RUNNER_TEMP/logreader-${{ matrix.config.config }}-${{ matrix.config.platform }}.7z" --format=7zip -- .
+        run: cmake -E tar vcf "$ARCHIVE_FILE" --format=7zip -- .
 
       - name: Upload
         uses: actions/upload-artifact@v2

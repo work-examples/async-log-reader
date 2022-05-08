@@ -1,11 +1,5 @@
 ﻿# ЗАМЕТКИ ПО РЕШЕНИЮ
 
-| Branch      | CI Build Status                                                                                                                                                                                         |
-|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **master**  | [![CI status](https://github.com/work-examples/async-log-reader/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/work-examples/async-log-reader/actions?query=branch%3Amaster)   |
-| **develop** | [![CI status](https://github.com/work-examples/async-log-reader/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/work-examples/async-log-reader/actions?query=branch%3Adevelop) |
-
-
 ## Ход решения
 
 Во-первых было интересно, спасибо! :)
