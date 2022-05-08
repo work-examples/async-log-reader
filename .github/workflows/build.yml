@@ -88,7 +88,8 @@ jobs:
     permissions:
       contents: write
     env:
-      ARTIFACT_NAME: logreader-Release-x64.7z
+      ARTIFACT_NAME1: logreader-Release-x86.7z
+      ARTIFACT_NAME2: logreader-Release-x64.7z
 
     steps:
       - name: Create Release
@@ -102,19 +103,34 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Download Artifact
+      - name: Download Artifact x86
         uses: actions/download-artifact@v2
         with:
-          name: ${{ env.ARTIFACT_NAME }}
+          name: ${{ env.ARTIFACT_NAME1 }}
           path: ./
 
-      - name: Upload Artifact to Release
-        id: upload_to_release
+      - name: Download Artifact x64
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.ARTIFACT_NAME2 }}
+          path: ./
+
+      - name: Upload Artifact x86 to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.ARTIFACT_NAME }}
-          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_path: ./${{ env.ARTIFACT_NAME1 }}
+          asset_name: ${{ env.ARTIFACT_NAME1 }}
+          asset_content_type: application/x-7z-compressed
+
+      - name: Upload Artifact x64 to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.ARTIFACT_NAME2 }}
+          asset_name: ${{ env.ARTIFACT_NAME2 }}
           asset_content_type: application/x-7z-compressed
