@@ -7,36 +7,56 @@ jobs:
   build:
     name: Visual Studio 2019
     runs-on: windows-2019
-
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - config: Release
+            platform: x64
+            output_dir: Release-x64
+          - config: Release
+            platform: x86
+            output_dir: Release-Win32
+          - config: Debug
+            platform: x64
+            output_dir: Debug-x64
+          - config: Debug
+            platform: x86
+            output_dir: Debug-Win32
     steps:
       - uses: actions/checkout@v2
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
         with:
-          msbuild-architecture: x64
+          msbuild-architecture: ${{ matrix.config.platform }}
 
-      - name: Build MSVC project
+      - name: Build MSVC project - ${{ matrix.config.config }} - ${{ matrix.config.platform }}
+        shell: cmd
+        run: |
+          MSBuild.exe ./LogReader.sln "/property:Configuration=${{ matrix.config.config }}" "/p:Platform=${{ matrix.config.platform }}"
+
+      - name: Run Unit Tests - ${{ matrix.config.config }} - ${{ matrix.config.platform }}
         shell: sh
         run: |
-          MSBuild.exe ./LogReader.sln /property:Configuration=Release
+          ./${{ matrix.config.output_dir }}/tests.exe
 
       - name: Copy Executable
         shell: sh
         run: |
           mkdir -p -- "$RUNNER_TEMP/instdir"
-          cp -- ./Release-x64/LogReader.exe "$RUNNER_TEMP/instdir"
+          cp -- ./${{ matrix.config.output_dir }}/LogReader.exe "$RUNNER_TEMP/instdir"
 
       - name: Pack
         working-directory: ${{ runner.temp }}/instdir
         shell: sh
-        run: cmake -E tar cfv "$RUNNER_TEMP/msvc.7z" --format=7zip -- .
+        run: cmake -E tar cfv "$RUNNER_TEMP/logreader-${{ matrix.config.config }}-${{ matrix.config.platform }}.7z" --format=7zip -- .
 
       - name: Upload
         uses: actions/upload-artifact@v2
         with:
-          path: ${{ runner.temp }}/msvc.7z
-          name: logreader-msvc.7z
+          path: ${{ runner.temp }}/logreader-${{ matrix.config.config }}-${{ matrix.config.platform }}.7z
+          name: logreader-${{ matrix.config.config }}-${{ matrix.config.platform }}.7z
 
   release:
     name: Create Release for ${{ github.ref }}
@@ -80,7 +100,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: logreader-msvc.7z
+          name: logreader-Release-x64.7z
           path: ./
 
       - name: Download URL
@@ -102,6 +122,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
-          asset_path: ./logreader-msvc.7z
-          asset_name: logreader-msvc.7z
+          asset_path: ./logreader-Release-x64.7z
+          asset_name: logreader-Release-x64.7z
           asset_content_type: application/x-7z-compressed
