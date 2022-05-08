@@ -9,6 +9,18 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="docs">
+      <UniqueIdentifier>{097bd2a1-2bdc-4f9c-be77-c4b3cfcf690d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="configs">
+      <UniqueIdentifier>{cabac5f3-cb39-4d10-a91b-9c6c0cfebe0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="github-workflows">
+      <UniqueIdentifier>{6c2e4231-fd62-4933-944e-d8dfe1927624}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tools">
+      <UniqueIdentifier>{dd621e17-51e5-4e3b-8226-8aa0f67e656e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -49,5 +61,41 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="docs\solution-notes-letter.ru.md">
+      <Filter>docs</Filter>
+    </None>
+    <None Include="docs\task-description.md">
+      <Filter>docs</Filter>
+    </None>
+    <None Include=".github\workflows\build.yml">
+      <Filter>github-workflows</Filter>
+    </None>
+    <None Include=".github\workflows\codeql-analysis.yml">
+      <Filter>github-workflows</Filter>
+    </None>
+    <None Include=".config\.markdownlint.yaml">
+      <Filter>configs</Filter>
+    </None>
+    <None Include=".config\.yamllint.yaml">
+      <Filter>configs</Filter>
+    </None>
+    <None Include=".editorconfig">
+      <Filter>configs</Filter>
+    </None>
+    <None Include=".gitattributes">
+      <Filter>configs</Filter>
+    </None>
+    <None Include=".gitignore">
+      <Filter>configs</Filter>
+    </None>
+    <None Include="Makefile">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="speed_test.sh">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="LICENSE">
+      <Filter>docs</Filter>
+    </None>
   </ItemGroup>
 </Project>
