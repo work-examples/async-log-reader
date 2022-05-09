@@ -1,4 +1,4 @@
-# Asynchronous Log File Reader [![Code license](https://img.shields.io/github/license/work-examples/async-log-reader)](LICENSE)
+﻿# Asynchronous Log File Reader [![Code license](https://img.shields.io/github/license/work-examples/async-log-reader)](LICENSE)
 
 **Example project:** Log file reader and filter (`grep` analog).
 Application reads specified file and writes matchig lines to `stdout`.
@@ -16,16 +16,17 @@ C++ exceptions are not used (forbidden).
 | **master**  | [![CI status](https://github.com/work-examples/async-log-reader/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/work-examples/async-log-reader/actions/workflows/build.yml?query=branch%3Amaster)   | [![CodeQL Code Analysis Status](https://github.com/work-examples/async-log-reader/actions/workflows/codeql-analysis.yml/badge.svg?branch=master)](https://github.com/work-examples/async-log-reader/actions/workflows/codeql-analysis.yml?query=branch%3Amaster) |
 | **develop** | [![CI status](https://github.com/work-examples/async-log-reader/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/work-examples/async-log-reader/actions/workflows/build.yml?query=branch%3Adevelop) | \[not applicable\]                                                                                                                                                                                                                                               |
 
-## Test Task Description
+## C++ Programmer's Test Task Description
 
 Detailed task description is provided in a separate document:
 
-- [task-description.md](docs/task-description.md)
+- [C++ Programmer's Test Task Description](docs/task-description.md) (`docs/task-description.md`)
 
-## Task Implementation Remarks
+## Test Task Implementation Notes
 
-Original implementation remarks letter in Russian is provided here:
+Original implementation notes letter is provided here in two languages:
 
-- [solution-notes-letter.ru.md](docs/solution-notes-letter.ru.md)
+- [EN: Test Task Implementation Notes](docs/implementation-notes-letter.md) (in English, `docs/implementation-notes-letter.md`)
+- [RU: Заметки по решению](docs/implementation-notes-letter.ru.md) (in Russian, `docs/implementation-notes-letter.ru.md`)
 
 ---

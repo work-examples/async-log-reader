@@ -1,4 +1,4 @@
-# C++ Programmer's Test Task
+# C++ Programmer's Test Task Description
 
 It is necessary to write a class in pure C++ that can read huge text log files
 (hundreds of megabytes, tens of gigabytes) as quickly as possible and produce lines
