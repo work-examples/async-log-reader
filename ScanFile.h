@@ -36,30 +36,30 @@ public:
     void LockFreeThreadProc();
 
 protected:
-    HANDLE        _hFile = nullptr;
+    HANDLE              _hFile           = nullptr;
 
     // For memory mapping:
-    HANDLE        _hFileMapping = nullptr;
-    void*         _pViewOfFile = nullptr;
+    HANDLE              _hFileMapping    = nullptr;
+    void*               _pViewOfFile     = nullptr;
 
     // For async IO:
-    HANDLE        _hAsyncEvent = nullptr;
-    LARGE_INTEGER _asyncFileOffset = {};
-    OVERLAPPED    _asyncOverlapped = {};
-    bool          _asyncOperationInProgress = false;
+    HANDLE              _hAsyncEvent     = nullptr;
+    LARGE_INTEGER       _asyncFileOffset = {};
+    OVERLAPPED          _asyncOverlapped = {};
+    bool                _asyncOperationInProgress = false;
 
     // Separate thread + Lock free:
-    HANDLE        _hThread = nullptr;
-    bool          _threadOperationInProgress = false; // for protection against wrong API usage, not for use in a worker thread, no memory protection
+    HANDLE              _hThread         = nullptr;
+    bool                _threadOperationInProgress = false; // for protection against wrong API usage, not for use in a worker thread, no memory protection
     // Spin lock variables:
     // We could use kernel-mode events instead of spin locks, it will save CPU, but will loose time during synchronization (switch to kernel).
     alignas(std::hardware_constructive_interference_size) // small speedup to get a bunch of variables into single cache line
-    bool          _threadFinishSpinlock = false;
-    bool          _threadOperationReadStartSpinlock = false;
-    bool          _threadOperationReadCompletedSpinlock = false;
+    bool                _threadFinishSpinlock = false;
+    bool                _threadOperationReadStartSpinlock = false;
+    bool                _threadOperationReadCompletedSpinlock = false;
     // other data protected by spin locks:
-    char*         _pThreadReadBuffer = nullptr;
-    size_t        _threadReadBufferSize = 0;
-    size_t        _threadActuallyReadBytes = 0;
-    bool          _threadReadSucceeded = false;
+    char*               _pThreadReadBuffer       = nullptr;
+    size_t              _threadReadBufferSize    = 0;
+    size_t              _threadActuallyReadBytes = 0;
+    bool                _threadReadSucceeded     = false;
 };
