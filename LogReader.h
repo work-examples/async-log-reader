@@ -57,7 +57,7 @@ protected:
 #if 0
     CAsyncLineReader    _lineReader;
 #else
-    CLockFreeLineReader _lineReader;
+    CSpinlockLineReader _lineReader;
 #endif
 #endif
     CCharBuffer        _pattern;

@@ -69,7 +69,7 @@ bool CScanFile::Open(const wchar_t* const filename, const bool asyncMode)
 
 void CScanFile::Close()
 {
-    this->LockFreecClean();
+    this->SpinlockClean();
 
     if (this->_pViewOfFile != nullptr)
     {
@@ -242,7 +242,7 @@ bool CScanFile::AsyncReadWait(size_t& readBytes)
 /// Implementation of file API executed in a separate thread with the help of spinlocks
 //////////////////////////////////////////////////////////////////////////
 
-bool CScanFile::LockFreecInit()
+bool CScanFile::SpinlockInit()
 {
     if (this->_hThread != nullptr)
     {
@@ -284,7 +284,7 @@ bool CScanFile::LockFreecInit()
 #endif
 
         CScanFile* const that = static_cast<CScanFile*>(p);
-        that->LockFreeThreadProc();
+        that->SpinlockThreadProc();
         _endthreadex(0);
         return 0;
     };
@@ -299,7 +299,7 @@ bool CScanFile::LockFreecInit()
     return true;
 }
 
-void CScanFile::LockFreecClean()
+void CScanFile::SpinlockClean()
 {
     if (this->_hThread != nullptr)
     {
@@ -310,7 +310,7 @@ void CScanFile::LockFreecClean()
 }
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
-bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
+bool CScanFile::SpinlockReadStart(char* const buffer, const size_t bufferLength)
 {
     if (this->_hThread == nullptr || this->_threadOperationInProgress)
     {
@@ -332,7 +332,7 @@ bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
 }
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
-bool CScanFile::LockFreeReadWait(size_t& readBytes)
+bool CScanFile::SpinlockReadWait(size_t& readBytes)
 {
     if (this->_hThread == nullptr || !this->_threadOperationInProgress)
     {
@@ -359,7 +359,7 @@ bool CScanFile::LockFreeReadWait(size_t& readBytes)
     return true;
 }
 
-void CScanFile::LockFreeThreadProc()
+void CScanFile::SpinlockThreadProc()
 {
     while (true)
     {

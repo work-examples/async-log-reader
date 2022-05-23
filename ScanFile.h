@@ -29,11 +29,11 @@ public:
     bool AsyncReadWait(size_t& readBytes);
 
     // Current limitation: only one async operation can be in progress.
-    bool LockFreecInit();
-    void LockFreecClean();
-    bool LockFreeReadStart(char* const buffer, const size_t bufferLength);
-    bool LockFreeReadWait(size_t& readBytes);
-    void LockFreeThreadProc();
+    bool SpinlockInit();
+    void SpinlockClean();
+    bool SpinlockReadStart(char* const buffer, const size_t bufferLength);
+    bool SpinlockReadWait(size_t& readBytes);
+    void SpinlockThreadProc();
 
 protected:
     alignas(std::hardware_constructive_interference_size) // small speedup to get a bunch of variables into single cache line
@@ -49,7 +49,7 @@ protected:
     OVERLAPPED          _asyncOverlapped = {};
     bool                _asyncOperationInProgress = false;
 
-    // Separate thread + Lock free:
+    // Separate thread + spin locks:
     HANDLE              _hThread         = nullptr;
 
     // for protection against wrong API usage, not for use in a worker thread, no memory protection:

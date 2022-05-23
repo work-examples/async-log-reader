@@ -78,11 +78,11 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
-// Implementation with 2 buffers and separate thread for sync calls to ReadFile(); synchronization is done without Windows EVENTs (lock free)
-class CLockFreeLineReader
+// Implementation with 2 buffers and separate thread for sync calls to ReadFile(); synchronization is done without Windows EVENTs (manual spin locks)
+class CSpinlockLineReader
 {
 public:
-    CLockFreeLineReader();
+    CSpinlockLineReader();
 
     bool Open(const wchar_t* const filename);
     void Close();

@@ -1,4 +1,4 @@
-﻿# Test Task Implementation Notes
+# Test Task Implementation Notes
 
 ## Decision progress
 
@@ -66,7 +66,7 @@ The latest application version takes 1.6 seconds to process test data while `gre
 
 **ADDED:**  
 I also implemented reading the file in a separate thread. The file operation is synchronous,
-synchronization between threads is done with the lock free loop (spinlock).
+synchronization between threads is done using spinlocks.
 It gave a total gain of 25% over the synchronous and asynchronous API solutions (total work time is 1.2 seconds).
 This is 2 times faster than `grep`.
 
@@ -85,7 +85,7 @@ I kept all four implementations of reading files. You can switch them in code:
 #if 0
     CAsyncLineReader _lineReader;
 #else
-    CLockFreeLineReader _lineReader;
+    CSpinlockLineReader _lineReader;
 #endif
 #endif
 ```

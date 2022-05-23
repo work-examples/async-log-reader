@@ -361,7 +361,7 @@ std::optional<std::string_view> CMappingLineReader::GetNextLine()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CLockFreeLineReader::CLockFreeLineReader()
+CSpinlockLineReader::CSpinlockLineReader()
 {
     this->_buffer1.Allocate(ReadBufferSize);
     if (this->_buffer1.ptr != nullptr)
@@ -370,7 +370,7 @@ CLockFreeLineReader::CLockFreeLineReader()
     }
 }
 
-bool CLockFreeLineReader::Open(const wchar_t* const filename)
+bool CSpinlockLineReader::Open(const wchar_t* const filename)
 {
     if (this->_buffer1.ptr == nullptr || filename == nullptr)
     {
@@ -389,17 +389,17 @@ bool CLockFreeLineReader::Open(const wchar_t* const filename)
     this->_bufferData = std::string_view(this->_buffer1.ptr, 0);
     this->_firstBufferIsActive = true;
 
-    const bool initLockFreeOk = this->_file.LockFreecInit();
-    if (!initLockFreeOk)
+    const bool initSpinlockOk = this->_file.SpinlockInit();
+    if (!initSpinlockOk)
     {
         this->_file.Close();
         return false;
     }
 
-    const bool readStartOk = this->_file.LockFreeReadStart(this->_buffer2.ptr + ReadBufferOffset, ReadChunkSize);
+    const bool readStartOk = this->_file.SpinlockReadStart(this->_buffer2.ptr + ReadBufferOffset, ReadChunkSize);
     if (!readStartOk)
     {
-        this->_file.LockFreecClean();
+        this->_file.SpinlockClean();
         this->_file.Close();
         return false;
     }
@@ -407,14 +407,14 @@ bool CLockFreeLineReader::Open(const wchar_t* const filename)
     return true;
 }
 
-void CLockFreeLineReader::Close()
+void CSpinlockLineReader::Close()
 {
-    this->_file.LockFreecClean();
+    this->_file.SpinlockClean();
     this->_file.Close();
 }
 
 __declspec(noinline) // noinline is added to help CPU profiling in release version
-std::optional<std::string_view> CLockFreeLineReader::GetNextLine()
+std::optional<std::string_view> CSpinlockLineReader::GetNextLine()
 {
     if (this->_buffer1.ptr == nullptr)
     {
@@ -446,7 +446,7 @@ std::optional<std::string_view> CLockFreeLineReader::GetNextLine()
         memcpy(newDataBufferPtr, this->_bufferData.data(), prefixLength);
 
         size_t readBytes = 0;
-        const bool readCompleteOk = this->_file.LockFreeReadWait(readBytes);
+        const bool readCompleteOk = this->_file.SpinlockReadWait(readBytes);
         if (!readCompleteOk)
         {
             // Previous reading failed
@@ -454,7 +454,7 @@ std::optional<std::string_view> CLockFreeLineReader::GetNextLine()
         }
 
         // Read missing data:
-        const bool readOk = this->_file.LockFreeReadStart(currentBuffer.ptr + ReadBufferOffset, ReadChunkSize);
+        const bool readOk = this->_file.SpinlockReadStart(currentBuffer.ptr + ReadBufferOffset, ReadChunkSize);
         if (!readOk)
         {
             // New reading failed
