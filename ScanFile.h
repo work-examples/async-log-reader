@@ -36,6 +36,7 @@ public:
     void LockFreeThreadProc();
 
 protected:
+    alignas(std::hardware_constructive_interference_size) // small speedup to get a bunch of variables into single cache line
     HANDLE              _hFile           = nullptr;
 
     // For memory mapping:
@@ -50,16 +51,24 @@ protected:
 
     // Separate thread + Lock free:
     HANDLE              _hThread         = nullptr;
-    bool                _threadOperationInProgress = false; // for protection against wrong API usage, not for use in a worker thread, no memory protection
-    // Spin lock variables:
-    // We could use kernel-mode events instead of spin locks, it will save CPU, but will loose time during synchronization (switch to kernel).
-    alignas(std::hardware_constructive_interference_size) // small speedup to get a bunch of variables into single cache line
-    bool                _threadFinishSpinlock = false;
-    bool                _threadOperationReadStartSpinlock = false;
-    bool                _threadOperationReadCompletedSpinlock = false;
+
+    // for protection against wrong API usage, not for use in a worker thread, no memory protection:
+    // this is not about synchronization, but about correct class method call sequence
+    bool                _threadOperationInProgress = false;
+
     // other data protected by spin locks:
     char*               _pThreadReadBuffer       = nullptr;
     size_t              _threadReadBufferSize    = 0;
     size_t              _threadActuallyReadBytes = 0;
     bool                _threadReadSucceeded     = false;
+
+    // Spin lock variables:
+
+    // We could use kernel-mode events instead of spin locks, it will save CPU, but will loose time during synchronization (switch to kernel).
+    alignas(std::hardware_destructive_interference_size)
+    std::atomic<bool>   _threadFinishSpinlock                 = ATOMIC_VAR_INIT(false);
+    alignas(std::hardware_destructive_interference_size)
+    std::atomic<bool>   _threadOperationReadStartSpinlock     = ATOMIC_VAR_INIT(false);
+    alignas(std::hardware_destructive_interference_size)
+    std::atomic<bool>   _threadOperationReadCompletedSpinlock = ATOMIC_VAR_INIT(false);
 };

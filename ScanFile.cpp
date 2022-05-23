@@ -3,9 +3,7 @@
 #include <assert.h>
 
 #include <algorithm>
-#include <atomic>       // for std::atomic_thread_fence
 
-#include <windows.h>
 
 namespace
 {
@@ -251,14 +249,14 @@ bool CScanFile::LockFreecInit()
         return false;
     }
 
-    this->_threadFinishSpinlock = false;
-    this->_threadOperationReadStartSpinlock = false;
-    this->_threadOperationReadCompletedSpinlock = false;
+    this->_threadFinishSpinlock.store(false, std::memory_order_relaxed);
+    this->_threadOperationReadStartSpinlock.store(false, std::memory_order_relaxed);
+    this->_threadOperationReadCompletedSpinlock.store(false, std::memory_order_relaxed);
     this->_pThreadReadBuffer = nullptr;
     this->_threadReadBufferSize = 0;
     this->_threadActuallyReadBytes = 0;
     this->_threadReadSucceeded = false;
-    std::atomic_thread_fence(std::memory_order_release);
+    // no need to synchronize before worker thread is started
 
     // This is a dirty hack for speedup inter-thread communication on hyperthreading CPUs
 #if ENABLE_THREAD_PREFERRED_AFFINITY
@@ -305,7 +303,7 @@ void CScanFile::LockFreecClean()
 {
     if (this->_hThread != nullptr)
     {
-        this->_threadFinishSpinlock = true;
+        this->_threadFinishSpinlock.store(true, std::memory_order_relaxed); // we won't reorder after WaitForSingleObject
         WaitForSingleObject(this->_hThread, INFINITE); // ignore return value in this case
         this->_hThread = nullptr;
     }
@@ -318,17 +316,17 @@ bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
     {
         return false;
     }
-
     this->_threadOperationInProgress = true;
-    this->_threadOperationReadCompletedSpinlock = false;
+
+    assert(this->_threadOperationReadStartSpinlock.load(std::memory_order_relaxed) == false);
+    assert(this->_threadOperationReadCompletedSpinlock.load(std::memory_order_relaxed) == false);
+
     this->_pThreadReadBuffer = buffer;
     this->_threadReadBufferSize = bufferLength;
     this->_threadActuallyReadBytes = 0;
     this->_threadReadSucceeded = false;
-    std::atomic_thread_fence(std::memory_order_release);
 
-    this->_threadOperationReadStartSpinlock = true;
-    std::atomic_thread_fence(std::memory_order_release);
+    this->_threadOperationReadStartSpinlock.store(true, std::memory_order_release);
 
     return true;
 }
@@ -340,18 +338,18 @@ bool CScanFile::LockFreeReadWait(size_t& readBytes)
     {
         return false;
     }
-
     this->_threadOperationInProgress = false;
-    std::atomic_thread_fence(std::memory_order_release);
 
-    std::atomic_thread_fence(std::memory_order_acquire);
-    while (!this->_threadOperationReadCompletedSpinlock)
+    // Wait for _threadOperationReadCompletedSpinlock == True and reset it:
+    while (true)
     {
-        // nothing
-        std::atomic_thread_fence(std::memory_order_acquire);
+        bool operationCompleted = true;
+        if (this->_threadOperationReadCompletedSpinlock.compare_exchange_weak(operationCompleted, false, std::memory_order_acquire, std::memory_order_relaxed))
+        {
+            break;
+        }
     }
 
-    std::atomic_thread_fence(std::memory_order_acquire);
     readBytes = this->_threadActuallyReadBytes;
     if (!this->_threadReadSucceeded)
     {
@@ -365,31 +363,27 @@ void CScanFile::LockFreeThreadProc()
 {
     while (true)
     {
-        std::atomic_thread_fence(std::memory_order_acquire);
-        if (this->_threadFinishSpinlock)
+        if (this->_threadFinishSpinlock.load(std::memory_order_relaxed))
         {
             // thread exit signal is caught
             break;
         }
 
-        if (!this->_threadOperationReadStartSpinlock)
+        // Check for _threadOperationReadStartSpinlock == True and reset it:
+        bool operationStarted = true;
+        if (!this->_threadOperationReadStartSpinlock.compare_exchange_weak(operationStarted, false, std::memory_order_acquire, std::memory_order_relaxed))
         {
             // nothing to do
             continue;
         }
 
-        std::atomic_thread_fence(std::memory_order_acquire);
-
         size_t readBytes = 0;
         const bool readOk = this->Read(this->_pThreadReadBuffer, this->_threadReadBufferSize, readBytes);
 
-        this->_threadOperationReadStartSpinlock = false;
         this->_threadActuallyReadBytes = readBytes;
         this->_threadReadSucceeded = readOk;
-        std::atomic_thread_fence(std::memory_order_release);
 
-        this->_threadOperationReadCompletedSpinlock = true;
-        std::atomic_thread_fence(std::memory_order_release);
+        this->_threadOperationReadCompletedSpinlock.store(true, std::memory_order_release);
     }
 }
 
