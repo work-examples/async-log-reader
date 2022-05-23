@@ -252,10 +252,10 @@ bool CScanFile::LockFreecInit()
     this->_threadFinishSpinlock.store(false, std::memory_order_relaxed);
     this->_threadOperationReadStartSpinlock.store(false, std::memory_order_relaxed);
     this->_threadOperationReadCompletedSpinlock.store(false, std::memory_order_relaxed);
-    this->_pThreadReadBuffer = nullptr;
-    this->_threadReadBufferSize = 0;
+    this->_pThreadReadBuffer       = nullptr;
+    this->_threadReadBufferSize    = 0;
     this->_threadActuallyReadBytes = 0;
-    this->_threadReadSucceeded = false;
+    this->_threadReadSucceeded     = false;
     // no need to synchronize before worker thread is started
 
     // This is a dirty hack for speedup inter-thread communication on hyperthreading CPUs
@@ -321,10 +321,10 @@ bool CScanFile::LockFreeReadStart(char* const buffer, const size_t bufferLength)
     assert(this->_threadOperationReadStartSpinlock.load(std::memory_order_relaxed) == false);
     assert(this->_threadOperationReadCompletedSpinlock.load(std::memory_order_relaxed) == false);
 
-    this->_pThreadReadBuffer = buffer;
-    this->_threadReadBufferSize = bufferLength;
+    this->_pThreadReadBuffer       = buffer;
+    this->_threadReadBufferSize    = bufferLength;
     this->_threadActuallyReadBytes = 0;
-    this->_threadReadSucceeded = false;
+    this->_threadReadSucceeded     = false;
 
     this->_threadOperationReadStartSpinlock.store(true, std::memory_order_release);
 
