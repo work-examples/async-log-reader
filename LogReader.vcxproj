@@ -192,7 +192,8 @@
     <None Include=".github\workflows\build.yml" />
     <None Include=".github\workflows\codeql-analysis.yml" />
     <None Include=".gitignore" />
-    <None Include="docs\solution-notes-letter.ru.md" />
+    <None Include="docs\implementation-notes-letter.md" />
+    <None Include="docs\implementation-notes-letter.ru.md" />
     <None Include="docs\task-description.md" />
     <None Include="LICENSE" />
     <None Include="Makefile" />
