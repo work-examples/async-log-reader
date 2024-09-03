@@ -104,13 +104,13 @@ jobs:
           prerelease: false
 
       - name: Download Artifact x86
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         with:
           name: ${{ env.ARTIFACT_NAME1 }}
           path: ./
 
       - name: Download Artifact x64
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         with:
           name: ${{ env.ARTIFACT_NAME2 }}
           path: ./
